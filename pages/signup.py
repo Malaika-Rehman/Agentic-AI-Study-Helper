@@ -1,0 +1,52 @@
+import streamlit as st
+from data.database import register_user
+from components.about_section import render_signup_about
+
+
+def render_signup():
+    col_left, col_right = st.columns([1.15, 1], gap="large")
+
+    with col_left:
+        st.markdown("""
+        <div class="app-topbar">
+          <span class="logo">🎓</span><span class="name">Agentic AI Study Helper</span>
+        </div>
+        """, unsafe_allow_html=True)
+        render_signup_about()
+
+    with col_right:
+        st.markdown("<div class='section-title' style='margin-bottom:4px'>Create Account</div>",
+                    unsafe_allow_html=True)
+        st.markdown("<div class='muted' style='margin-bottom:20px'>Fill in your details below</div>",
+                    unsafe_allow_html=True)
+
+        with st.form("signup_form"):
+            name       = st.text_input("Full Name", placeholder="Malaika Rehman")
+            student_id = st.text_input("Student ID", placeholder="BC-25(B)U/22")
+            email      = st.text_input("Email Address", placeholder="you@example.com")
+            password   = st.text_input("Password", type="password", placeholder="Min. 6 characters")
+            confirm    = st.text_input("Confirm Password", type="password", placeholder="••••••••")
+            submitted  = st.form_submit_button("Create Account →", use_container_width=True, type="primary")
+
+        if submitted:
+            if not all([name, student_id, email, password, confirm]):
+                st.error("Please fill in all fields.")
+            elif len(password) < 6:
+                st.error("Password must be at least 6 characters.")
+            elif password != confirm:
+                st.error("Passwords do not match.")
+            else:
+                success, message = register_user(email, password, name, student_id)
+                if success:
+                    st.success("🎉 Account created! Please sign in.")
+                    st.session_state.just_registered = True
+                    import time; time.sleep(1)
+                    st.session_state.screen = "login"
+                    st.rerun()
+                else:
+                    st.error(f"❌ {message}")
+
+        st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
+        if st.button("Already have an account? Sign in →", use_container_width=True):
+            st.session_state.screen = "login"
+            st.rerun()

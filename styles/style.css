@@ -1,0 +1,332 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; }
+
+/* ── App Background ── */
+.stApp {
+    background-color: #FAF6F7;
+    background-attachment: fixed;
+    background-size: cover;
+}
+
+/* Remove default Streamlit top padding and header space */
+[data-testid="stHeader"] {
+    background: transparent !important;
+    box-shadow: none !important;
+}
+[data-testid="stToolbar"],
+[data-testid="stDecoration"] {
+    visibility: hidden !important;
+}
+
+.block-container {
+    padding-top: 1.5rem !important;
+    padding-bottom: 1.5rem !important;
+}
+
+/* ── Auth Card (centered login / signup) ── */
+.auth-card {
+    text-align: center;
+    padding: 32px 8px 24px;
+}
+.auth-card-logo {
+    font-size: 42px;
+    margin-bottom: 10px;
+    display: block;
+    filter: drop-shadow(0 4px 12px rgba(128,43,69,0.18));
+}
+.auth-card-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    color: #802B45;
+    letter-spacing: 0.01em;
+    margin-bottom: 6px;
+}
+.auth-card-sub {
+    font-size: 13px;
+    color: #9E828D;
+    margin-bottom: 20px;
+}
+
+/* ── Auth Left Panel (login / signup marketing panel) ── */
+.auth-left {
+    background: #802B45;
+    border-radius: 20px;
+    padding: 45px 40px;
+    height: 100%;
+}
+
+/* ── App Topbar (sits above the login/signup columns, outside the panel) ── */
+.app-topbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 4px 22px;
+}
+.app-topbar .logo {
+    font-size: 24px;
+    filter: drop-shadow(0 2px 6px rgba(128,43,69,0.18));
+}
+.app-topbar .name {
+    font-family: 'DM Serif Display', serif;
+    font-size: 20px;
+    color: #802B45;
+    letter-spacing: 0.01em;
+}
+.auth-left h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 38px;
+    color: white;
+    line-height: 1.2;
+    margin-bottom: 16px;
+}
+.auth-left p { color: rgba(255,255,255,0.8); font-size: 14px; line-height: 1.6; }
+.auth-badge {
+    display: inline-flex;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 100px;
+    padding: 6px 14px;
+    font-size: 12px;
+    color: white;
+    margin-bottom: 30px;
+    font-weight: 500;
+}
+.auth-feature { display: flex; align-items: start; gap: 14px; margin-top: 24px; }
+.auth-feature-title { color: white; font-weight: 600; font-size: 14px; }
+.auth-feature-sub { color: rgba(255,255,255,0.55); font-size: 12px; margin-top: 2px; }
+
+/* ── Dashboard Empty-State Upload Card ── */
+.dash-upload-card {
+    background: white;
+    border: 2px dashed #EADCE0;
+    border-bottom: none;
+    border-radius: 16px 16px 0 0;
+    padding: 48px 24px 20px;
+    text-align: center;
+    margin: 20px 0 0;
+}
+div[data-testid="stFileUploaderDropzone"] {
+    border-radius: 0 0 16px 16px !important;
+    border: 2px dashed #EADCE0 !important;
+    border-top: none !important;
+    background: white !important;
+}
+/* ── Dashboard Components ── */
+.agent-banner {
+    background: white;
+    border: 1px solid #EADCE0;
+    border-radius: 16px;
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 12px rgba(128, 43, 69, 0.02);
+}
+.banner-left { display: flex; align-items: center; gap: 16px; }
+.pulse-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #22C55E;
+    box-shadow: 0 0 0 4px rgba(34,197,94,0.2);
+    animation: pulseAnim 2s infinite;
+}
+@keyframes pulseAnim {
+    0%   { box-shadow: 0 0 0 0   rgba(34,197,94,0.4); }
+    70%  { box-shadow: 0 0 0 8px rgba(34,197,94,0); }
+    100% { box-shadow: 0 0 0 0   rgba(34,197,94,0); }
+}
+
+/* ── Metrics Grid ── */
+.stat-card {
+    background: white;
+    border: 1px solid #EADCE0;
+    border-radius: 16px;
+    padding: 22px;
+    text-align: left;
+    box-shadow: 0 2px 12px rgba(128, 43, 69, 0.02);
+}
+.stat-val { font-family: 'DM Serif Display', serif; font-size: 34px; color: #802B45; line-height: 1.1; }
+.stat-lbl { font-size: 13px; color: #7A5864; margin-top: 6px; font-weight: 500; }
+
+/* ── Custom Cards & Content ── */
+.content-card {
+    background: white;
+    border: 1px solid #EADCE0;
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 16px;
+}
+.flashcard {
+    background: #802B45;
+    border-radius: 16px;
+    padding: 40px;
+    text-align: center;
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    box-shadow: 0 4px 20px rgba(128, 43, 69, 0.1);
+}
+.fc-label { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,0.5); margin-bottom: 16px; font-weight: 600; }
+.fc-text  { font-size: 18px; font-weight: 500; color: white; line-height: 1.5; }
+.fc-hint  { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 20px; }
+
+/* ── Chat Flow ── */
+.chat-container { display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; padding: 4px; }
+.chat-row-ai    { display: flex; justify-content: flex-start; margin-right: 15%; }
+.chat-row-user  { display: flex; justify-content: flex-end; margin-left: 15%; }
+.bubble-ai {
+    background: white;
+    border: 1px solid #EADCE0;
+    border-radius: 16px 16px 16px 4px;
+    padding: 14px 18px;
+    font-size: 14.5px;
+    color: #1A0A0F;
+    line-height: 1.6;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.01);
+}
+.bubble-user {
+    background: #802B45;
+    color: white;
+    border-radius: 16px 16px 4px 16px;
+    padding: 14px 18px;
+    font-size: 14.5px;
+    line-height: 1.6;
+    box-shadow: 0 3px 12px rgba(128, 43, 69, 0.08);
+}
+.msg-header      { font-size: 11px; color: #8A6070; margin-bottom: 5px; font-weight: 600; letter-spacing: .02em; }
+.msg-header-user { font-size: 11px; color: #8A6070; margin-bottom: 5px; font-weight: 600; letter-spacing: .02em; text-align: right; }
+
+.prog-bg   { background: #F3ECEF; border-radius: 100px; height: 6px; margin-top: 12px; overflow: hidden; }
+.prog-fill { height: 6px; border-radius: 100px; }
+.section-title { font-family: 'DM Serif Display', serif; font-size: 26px; color: #1A0A0F; }
+.muted { font-size: 14px; color: #7A5864; }
+
+div[data-testid="stForm"] { background: white !important; border: 1px solid #EADCE0 !important; border-radius: 16px !important; padding: 16px !important; }
+.stTabs [data-baseweb="tab-list"] { gap: 8px; }
+.stTabs [data-baseweb="tab"] {
+    background-color: transparent;
+    border: 1px solid #EADCE0;
+    padding: 8px 16px;
+    border-radius: 100px;
+    font-size: 13px;
+    color: #7A5864;
+}
+.stTabs [data-baseweb="tab"][aria-selected="true"] {
+    background-color: #802B45 !important;
+    color: white !important;
+    border-color: #802B45 !important;
+}
+
+/* ── Sidebar ── */
+[data-testid="stSidebar"] {
+    background-color: #FAF6F7 !important;
+    border-right: 1px solid #EADCE0;
+    min-width: 21rem !important;
+    max-width: 21rem !important;
+    transform: none !important;
+    visibility: visible !important;
+}
+/* Sidebar stays permanently visible — remove the collapse/expand control entirely */
+[data-testid="stSidebarCollapsedControl"],
+[data-testid="baseButton-headerNoPadding"] {
+    display: none !important;
+}
+
+/* ── Button Hover Effects ── */
+
+/* Primary button (Sign In, Launch Chat, etc.) */
+.stButton > button[kind="primary"],
+.stButton > button[data-testid="baseButton-primary"] {
+    background-color: #802B45;
+    color: white;
+    border: none;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+}
+.stButton > button[kind="primary"]:hover,
+.stButton > button[data-testid="baseButton-primary"]:hover {
+    background-color: #6B2339 !important;
+    box-shadow: 0 4px 16px rgba(128, 43, 69, 0.35) !important;
+    transform: translateY(-1px);
+}
+.stButton > button[kind="primary"]:active,
+.stButton > button[data-testid="baseButton-primary"]:active {
+    background-color: #5A1C2F !important;
+    transform: translateY(0px);
+}
+
+/* Secondary / default buttons */
+.stButton > button[kind="secondary"],
+.stButton > button[data-testid="baseButton-secondary"],
+.stButton > button:not([kind="primary"]) {
+    background-color: white;
+    color: #802B45;
+    border: 1px solid #EADCE0;
+    transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+}
+.stButton > button[kind="secondary"]:hover,
+.stButton > button[data-testid="baseButton-secondary"]:hover,
+.stButton > button:not([kind="primary"]):hover {
+    background-color: #FBF0F3 !important;
+    border-color: #802B45 !important;
+    color: #802B45 !important;
+    box-shadow: 0 2px 10px rgba(128, 43, 69, 0.12) !important;
+    transform: translateY(-1px);
+}
+.stButton > button:not([kind="primary"]):active {
+    background-color: #F5E6EA !important;
+    transform: translateY(0px);
+}
+
+/* Sidebar buttons */
+[data-testid="stSidebar"] .stButton > button {
+    background-color: transparent;
+    color: #802B45;
+    border: 1px solid #EADCE0;
+    transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
+}
+[data-testid="stSidebar"] .stButton > button:hover {
+    background-color: #FBF0F3 !important;
+    border-color: #802B45 !important;
+    color: #802B45 !important;
+    transform: translateY(-1px);
+}
+
+/* Tab hover */
+.stTabs [data-baseweb="tab"]:hover {
+    background-color: #FBF0F3 !important;
+    border-color: #802B45 !important;
+    color: #802B45 !important;
+    transition: all 0.2s ease;
+}
+
+/* Form submit button */
+.stFormSubmitButton > button {
+    transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease !important;
+}
+.stFormSubmitButton > button:hover {
+    background-color: #6B2339 !important;
+    box-shadow: 0 4px 16px rgba(128, 43, 69, 0.35) !important;
+    transform: translateY(-1px);
+}
+
+/* ── Study Plan Checkboxes ── */
+.stCheckbox label p {
+    font-weight: 600 !important;
+    font-size: 14.5px !important;
+    color: #1A0A0F !important;
+}
+.stCheckbox [data-baseweb="checkbox"] svg {
+    transition: all 0.2s ease;
+}
+
+/* ── Auth card vertical centering helper ── */
+.auth-page-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 70vh;
+}
