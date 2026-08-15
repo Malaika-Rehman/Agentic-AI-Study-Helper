@@ -1,5 +1,6 @@
 import streamlit as st
-from data.database import login_user
+from data.database import login_user, get_user_documents
+from data.data_store import load_document_into_session
 from components.about_section import render_login_about
 
 
@@ -37,6 +38,17 @@ def render_auth():
                     st.session_state.user_email = result["email"]
                     st.session_state.screen     = "home"
                     st.session_state.pop("just_registered", None)
+
+                    # If this user already has study material from a
+                    # previous session, load the most recent one so the
+                    # dashboard shows their content instead of the
+                    # empty-state upload card.
+                    existing_docs = get_user_documents(result["email"])
+                    if existing_docs:
+                        loaded = load_document_into_session(existing_docs[0]["id"], result["email"])
+                        if loaded:
+                            st.session_state.doc_name = existing_docs[0]["filename"]
+
                     st.rerun()
                 else:
                     st.error(f"❌ {result}")

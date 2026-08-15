@@ -21,18 +21,19 @@ def render_signup():
                     unsafe_allow_html=True)
 
         with st.form("signup_form"):
-            name       = st.text_input("Full Name", placeholder="Malaika Rehman")
-            student_id = st.text_input("Student ID", placeholder="BC-25(B)U/22")
-            email      = st.text_input("Email Address", placeholder="you@example.com")
-            password   = st.text_input("Password", type="password", placeholder="Min. 6 characters")
-            confirm    = st.text_input("Confirm Password", type="password", placeholder="••••••••")
+            name       = st.text_input("Full Name", placeholder="Enter your full name")
+            student_id = st.text_input("Student ID", placeholder="Enter student ID BC-00(B)U/22")
+            email      = st.text_input("Email Address", placeholder="Enter your email address")
+            password   = st.text_input("Password", type="password", placeholder="Enter a password (min. 8 characters)")
+            confirm    = st.text_input("Confirm Password", type="password", placeholder="Confirm your password")
             submitted  = st.form_submit_button("Create Account →", use_container_width=True, type="primary")
 
         if submitted:
             if not all([name, student_id, email, password, confirm]):
                 st.error("Please fill in all fields.")
-            elif len(password) < 6:
-                st.error("Password must be at least 6 characters.")
+            elif len(password) < 8:
+                st.error("Password must be at least 8 characters.")
+            
             elif password != confirm:
                 st.error("Passwords do not match.")
             else:

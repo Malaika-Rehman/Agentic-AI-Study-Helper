@@ -177,6 +177,19 @@ def update_study_plan(doc_id: int, study_plan: list):
 
 
 # ─────────────────────────────────────────────
+# DELETE DOCUMENT
+# ─────────────────────────────────────────────
+def delete_document(user_email: str, doc_id: int):
+    """Permanently delete a document and everything tied to it
+    (generated results, chat history). Scoped to user_email so a
+    user can only ever delete their own documents."""
+    with _conn() as conn:
+        conn.execute("DELETE FROM documents WHERE id = ? AND user_email = ?", (doc_id, user_email))
+        conn.execute("DELETE FROM results WHERE doc_id = ?", (doc_id,))
+        conn.execute("DELETE FROM chat_history WHERE doc_id = ? AND user_email = ?", (doc_id, user_email))
+
+
+# ─────────────────────────────────────────────
 # CHAT HISTORY
 # ─────────────────────────────────────────────
 def save_message(user_email: str, doc_id: int, role: str, content: str):

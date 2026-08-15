@@ -1,39 +1,24 @@
 import streamlit as st
-import base64
-import os
 from data.document_processor import extract_text
 from data.ai_agents import detect_subject, generate_summary, generate_flashcards, generate_quiz, generate_study_plan
-from data.database import save_document, save_results, get_user_documents
-from data.vector_store import store_document
-from data.data_store import load_document_into_session
+from data.database import save_document, save_results, get_user_documents, delete_document as delete_document_db
+from data.vector_store import store_document, delete_document as delete_document_vectors
+from data.data_store import load_document_into_session, clear_current_document
 from components.about_section import render_sidebar_footer
 
 
-def _render_sidebar_logo():
-    logo_path = os.path.join(os.path.dirname(__file__), "..", "assets", "SBBWUP_logo.png")
-    try:
-        with open(logo_path, "rb") as f:
-            encoded = base64.b64encode(f.read()).decode()
-        st.markdown(f"""
-        <div style='text-align:center; padding:14px 4px 10px;'>
-          <img src="data:image/png;base64,{encoded}"
-               style="width:72px; height:auto; margin-bottom:8px; display:inline-block;"/>
-          <div style='font-size:13px; font-weight:700; color:#802B45; line-height:1.3;'>
-            Shaheed Benazir Bhutto<br/>Women University
-          </div>
-          <div style='font-size:11px; color:#7A5864; margin-top:2px;'>Peshawar</div>
-        </div>
-        """, unsafe_allow_html=True)
-    except Exception:
-        st.markdown("""
-        <div style='text-align:center; padding:14px 4px 10px;'>
-          <div style='font-size:32px;'>🏰</div>
-          <div style='font-size:13px; font-weight:700; color:#802B45;'>
-            Shaheed Benazir Bhutto<br/>Women University
-          </div>
-          <div style='font-size:11px; color:#7A5864; margin-top:2px;'>Peshawar</div>
-        </div>
-        """, unsafe_allow_html=True)
+def _section_label(text: str):
+    """Small uppercase section heading used throughout the sidebar
+    instead of plain st.divider() rules, for a cleaner, app-like feel."""
+    st.markdown(f"<div class='sidebar-section-label'>{text}</div>", unsafe_allow_html=True)
+
+
+def _nav_button(label: str, target_screen: str, current_screen: str):
+    """A nav row that visually highlights when it's the active screen."""
+    return st.button(
+        label, use_container_width=True,
+        type="primary" if current_screen == target_screen else "secondary",
+    )
 
 
 def process_document(file):
@@ -107,69 +92,74 @@ def process_document(file):
 
 def render_auth_sidebar():
     with st.sidebar:
-        _render_sidebar_logo()
-        st.divider()
+        st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
+        _section_label("Support")
         if st.button("ℹ️  About", use_container_width=True):
             st.session_state.about_return_screen = st.session_state.screen
             st.session_state.screen = "about"
             st.rerun()
-        st.divider()
+        st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
         render_sidebar_footer()
 
 
 def render_about_sidebar():
     with st.sidebar:
-        _render_sidebar_logo()
-        st.divider()
+        st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
+        _section_label("Navigation")
         if st.button("← Back", use_container_width=True):
             st.session_state.screen = st.session_state.get("about_return_screen", "login")
             st.rerun()
-        st.divider()
+        st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
         render_sidebar_footer()
 
 
 def render_dashboard_sidebar():
     with st.sidebar:
-        _render_sidebar_logo()
-        st.divider()
+        st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
+        screen = st.session_state.screen
 
-        if st.button("🏠  Dashboard", use_container_width=True):
+        _section_label("Navigation")
+        if _nav_button("🏠  Dashboard", "home", screen):
             st.session_state.screen = "home"
             st.rerun()
-        if st.button("💬  AI Chat", use_container_width=True):
+        if _nav_button("💬  AI Chat", "chat", screen):
             st.session_state.screen = "chat"
             st.rerun()
 
-        st.divider()
+        # Previous documents are fetched once and reused below both for
+        # the "has this user uploaded anything yet?" check and the list.
+        docs = get_user_documents(st.session_state.user_email)
+        has_material = st.session_state.doc_processed or bool(docs)
 
-        # ── Upload New Document ──
-        st.markdown("##### 📎 Upload Study Material")
-        st.caption("PDF, DOCX, PPTX, or TXT")
-        uploaded_file = st.file_uploader(
-            "Upload", type=["pdf", "docx", "pptx", "txt", "md"],
-            label_visibility="collapsed",
-        )
-        if uploaded_file and uploaded_file.name != st.session_state.doc_name:
-            process_document(uploaded_file)
-            st.rerun()
+        if has_material:
+            _section_label("Upload Study Material")
+            st.caption("PDF, DOCX, PPTX, or TXT")
+            uploaded_file = st.file_uploader(
+                "Upload", type=["pdf", "docx", "pptx", "txt", "md"],
+                label_visibility="collapsed",
+            )
+            if uploaded_file and uploaded_file.name != st.session_state.doc_name:
+                process_document(uploaded_file)
+                st.rerun()
 
-        if st.session_state.doc_processed and st.session_state.doc_name:
-            st.markdown(f"""
-            <div style='background:#F0FDF4; border:1px solid #86EFAC; border-radius:10px;
-                        padding:10px 12px; font-size:12px; color:#166534; margin-top:8px;'>
-              ✅ <b>Active:</b> {st.session_state.doc_name}
-            </div>""", unsafe_allow_html=True)
+            if st.session_state.doc_processed and st.session_state.doc_name:
+                st.markdown(f"""
+                <div style='background:#F0FDF4; border:1px solid #86EFAC; border-radius:10px;
+                            padding:10px 12px; font-size:12px; color:#166534; margin-top:8px;'>
+                  ✅ <b>Active:</b> {st.session_state.doc_name}
+                </div>""", unsafe_allow_html=True)
+                st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
+                if st.button("🧹 Clear Dashboard", use_container_width=True,
+                             help="Return to the empty upload state — your document stays saved"):
+                    clear_current_document()
+                    st.rerun()
 
         # ── Past Documents ──
-        st.divider()
-        st.markdown("##### 📂 Previous Documents")
-        docs = get_user_documents(st.session_state.user_email)
-        if not docs:
-            st.caption("No documents yet.")
-        else:
+        if docs:
+            _section_label("Previous Documents")
             for doc in docs:
-                col_btn, col_date = st.columns([3, 2])
-                label = doc["filename"][:22] + "…" if len(doc["filename"]) > 22 else doc["filename"]
+                col_btn, col_date, col_del = st.columns([3, 1.5, 0.7])
+                label = doc["filename"][:20] + "…" if len(doc["filename"]) > 20 else doc["filename"]
                 date  = doc["uploaded_at"][:10]
                 with col_btn:
                     if st.button(f"📄 {label}", key=f"doc_{doc['id']}", use_container_width=True):
@@ -179,13 +169,26 @@ def render_dashboard_sidebar():
                 with col_date:
                     st.markdown(f"<div style='font-size:10px; color:#9E828D; padding-top:8px;'>{date}</div>",
                                 unsafe_allow_html=True)
+                with col_del:
+                    confirm_key = f"confirm_del_{doc['id']}"
+                    if st.session_state.get(confirm_key):
+                        if st.button("✅", key=f"del_yes_{doc['id']}", help="Confirm permanent delete"):
+                            delete_document_db(st.session_state.user_email, doc["id"])
+                            delete_document_vectors(st.session_state.user_email, doc["id"])
+                            if st.session_state.doc_id == doc["id"]:
+                                clear_current_document()
+                            st.session_state.pop(confirm_key, None)
+                            st.rerun()
+                    else:
+                        if st.button("🗑", key=f"del_{doc['id']}", help="Delete this document permanently"):
+                            st.session_state[confirm_key] = True
+                            st.rerun()
 
         # ── User Card ──
-        st.divider()
+        _section_label("Account")
         initials = "".join(w[0] for w in st.session_state.user_name.split()[:2]).upper()
         st.markdown(f"""
-        <div style='background:#FDF9FA; border:1px solid #EADCE0; border-radius:12px;
-                    padding:12px; display:flex; align-items:center; gap:10px'>
+        <div class="sidebar-account-card">
           <div style='width:34px; height:34px; border-radius:50%; background:#802B45;
                       color:white; display:flex; align-items:center; justify-content:center;
                       font-weight:700; font-size:12px; flex-shrink:0'>{initials}</div>
@@ -204,22 +207,22 @@ def render_dashboard_sidebar():
 
 def render_chat_sidebar():
     with st.sidebar:
-        _render_sidebar_logo()
-        st.divider()
+        st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
+        _section_label("Navigation")
 
         if st.button("← Back to Dashboard", use_container_width=True):
             st.session_state.screen = "home"
             st.rerun()
 
         if st.session_state.doc_processed and st.session_state.doc_name:
-            st.divider()
+            _section_label("Active Context")
             st.markdown(f"""
             <div style='background:#F0FDF4; border:1px solid #86EFAC; border-radius:10px;
                         padding:10px 12px; font-size:12px; color:#166534;'>
               ✅ <b>Context:</b> {st.session_state.doc_name}
             </div>""", unsafe_allow_html=True)
 
-        st.divider()
+        _section_label("Session")
         if st.button("🗑 Clear Chat History", use_container_width=True):
             from data.database import clear_chat_history
             clear_chat_history(st.session_state.user_email, st.session_state.doc_id)

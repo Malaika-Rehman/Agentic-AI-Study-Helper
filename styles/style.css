@@ -106,7 +106,7 @@ html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; }
     text-align: center;
     margin: 20px 0 0;
 }
-div[data-testid="stFileUploaderDropzone"] {
+[data-testid="stMain"] div[data-testid="stFileUploaderDropzone"] {
     border-radius: 0 0 16px 16px !important;
     border: 2px dashed #EADCE0 !important;
     border-top: none !important;
@@ -221,14 +221,27 @@ div[data-testid="stForm"] { background: white !important; border: 1px solid #EAD
     border-color: #802B45 !important;
 }
 
-/* ── Sidebar ── */
+/* ── Sidebar: Academic Ledger identity ──
+   Signature: a maroon+gold "book-spine" seam along the sidebar's inner
+   edge, with a matching gold ribbon marker on the active nav item —
+   a nod to graduation-regalia trim, echoing the 🎓 motif elsewhere. */
 [data-testid="stSidebar"] {
-    background-color: #FAF6F7 !important;
+    background-color: #FBF7F5 !important;
     border-right: 1px solid #EADCE0;
     min-width: 21rem !important;
     max-width: 21rem !important;
     transform: none !important;
     visibility: visible !important;
+    position: relative;
+}
+[data-testid="stSidebar"]::after {
+    content: "";
+    position: absolute;
+    top: 0; right: -1px;
+    width: 3px;
+    height: 100%;
+    background: linear-gradient(180deg, #C9A227 0%, #802B45 18%, #802B45 82%, #C9A227 100%);
+    opacity: 0.55;
 }
 /* Sidebar stays permanently visible — remove the collapse/expand control entirely */
 [data-testid="stSidebarCollapsedControl"],
@@ -236,7 +249,79 @@ div[data-testid="stForm"] { background: white !important; border: 1px solid #EAD
     display: none !important;
 }
 
-/* ── Button Hover Effects ── */
+/* Section labels styled like ledger tabs: serif italic, gold underline */
+.sidebar-section-label {
+    font-family: 'DM Serif Display', serif;
+    font-style: italic;
+    font-size: 14px;
+    font-weight: 400;
+    letter-spacing: 0.01em;
+    color: #802B45;
+    margin: 22px 2px 10px;
+    display: inline-block;
+    border-bottom: 1.5px solid #C9A227;
+    padding-bottom: 3px;
+}
+
+/* Sidebar buttons: ghost rows with a gold ribbon tab on hover/active */
+[data-testid="stSidebar"] .stButton > button {
+    background-color: transparent;
+    color: #4A3A40;
+    border: 1px solid transparent;
+    border-left: 3px solid transparent;
+    font-weight: 500;
+    text-align: left;
+    justify-content: flex-start;
+    padding-left: 13px;
+    border-radius: 8px;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+[data-testid="stSidebar"] .stButton > button:hover {
+    background-color: #FBF0F3 !important;
+    border-left-color: #C9A227 !important;
+    color: #802B45 !important;
+    transform: none;
+}
+/* Active nav item — solid maroon fill with a gold ribbon edge */
+[data-testid="stSidebar"] .stButton > button[kind="primary"] {
+    background-color: #802B45 !important;
+    color: white !important;
+    border-color: #802B45 !important;
+    border-left: 3px solid #C9A227 !important;
+    font-weight: 600;
+    box-shadow: 0 2px 10px rgba(128, 43, 69, 0.28);
+}
+[data-testid="stSidebar"] .stButton > button[kind="primary"]:hover {
+    background-color: #6B2339 !important;
+    box-shadow: 0 3px 14px rgba(128, 43, 69, 0.4) !important;
+}
+
+/* Sidebar file uploader — cream card with a gold dashed edge */
+[data-testid="stSidebar"] div[data-testid="stFileUploaderDropzone"] {
+    background: white !important;
+    border: 1.5px dashed #D9B54A !important;
+    border-radius: 10px !important;
+}
+
+/* Previous-document rows: hairline ledger separators */
+[data-testid="stSidebar"] [data-testid="stHorizontalBlock"] {
+    border-bottom: 1px solid #EFE2E6;
+    padding-bottom: 4px;
+    margin-bottom: 2px;
+}
+
+/* Account card — small gold corner accent, like an ID badge */
+.sidebar-account-card {
+    position: relative;
+    background: white;
+    border: 1px solid #EADCE0;
+    border-top: 2px solid #C9A227;
+    border-radius: 10px;
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
 
 /* Primary button (Sign In, Launch Chat, etc.) */
 .stButton > button[kind="primary"],
@@ -279,20 +364,6 @@ div[data-testid="stForm"] { background: white !important; border: 1px solid #EAD
 .stButton > button:not([kind="primary"]):active {
     background-color: #F5E6EA !important;
     transform: translateY(0px);
-}
-
-/* Sidebar buttons */
-[data-testid="stSidebar"] .stButton > button {
-    background-color: transparent;
-    color: #802B45;
-    border: 1px solid #EADCE0;
-    transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
-}
-[data-testid="stSidebar"] .stButton > button:hover {
-    background-color: #FBF0F3 !important;
-    border-color: #802B45 !important;
-    color: #802B45 !important;
-    transform: translateY(-1px);
 }
 
 /* Tab hover */
