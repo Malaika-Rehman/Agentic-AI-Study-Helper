@@ -30,6 +30,7 @@ def init_db():
             password    TEXT    NOT NULL,
             name        TEXT    NOT NULL,
             student_id  TEXT    NOT NULL,
+            login_count INTEGER NOT NULL DEFAULT 0,
             created_at  TEXT    DEFAULT (datetime('now'))
         );
 
@@ -66,6 +67,14 @@ def init_db():
             FOREIGN KEY (doc_id) REFERENCES documents(id)
         );
         """)
+        # Safe migration: adds login_count to a users table that already
+        # existed before this column was introduced. Harmless no-op if
+        # the column is already there (fresh installs get it via the
+        # CREATE TABLE above).
+        try:
+            conn.execute("ALTER TABLE users ADD COLUMN login_count INTEGER NOT NULL DEFAULT 0")
+        except sqlite3.OperationalError:
+            pass
 
 
 # ─────────────────────────────────────────────
@@ -105,6 +114,24 @@ def login_user(email: str, password: str) -> tuple[bool, dict | str]:
         return True, dict(row)
     except Exception as e:
         return False, f"Login error: {e}"
+
+
+def record_login(email: str) -> bool:
+    """Increments the user's login_count and returns True if this was
+    their very first-ever successful login (count was 0 before this
+    call). Used to show a one-time welcome on the dashboard, since the
+    app only actually knows who's logging in AFTER authentication —
+    the login form itself is shown before anyone's identity is known."""
+    with _conn() as conn:
+        row = conn.execute(
+            "SELECT login_count FROM users WHERE email = ?", (email.strip().lower(),)
+        ).fetchone()
+        is_first_login = bool(row) and row["login_count"] == 0
+        conn.execute(
+            "UPDATE users SET login_count = login_count + 1 WHERE email = ?",
+            (email.strip().lower(),)
+        )
+    return is_first_login
 
 
 # ─────────────────────────────────────────────

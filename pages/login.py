@@ -1,5 +1,5 @@
 import streamlit as st
-from data.database import login_user, get_user_documents
+from data.database import login_user, get_user_documents, record_login
 from data.data_store import load_document_into_session
 from components.about_section import render_login_about
 
@@ -16,8 +16,7 @@ def render_auth():
         render_login_about()
 
     with col_right:
-        welcome_msg = "Welcome" if st.session_state.get("just_registered") else "Welcome Back"
-        st.markdown(f"<div class='section-title' style='margin-bottom:4px'>{welcome_msg}</div>",
+        st.markdown("<div class='section-title' style='margin-bottom:4px'>Welcome</div>",
                     unsafe_allow_html=True)
         st.markdown("<div class='muted' style='margin-bottom:20px'>Enter your credentials to continue</div>",
                     unsafe_allow_html=True)
@@ -38,6 +37,12 @@ def render_auth():
                     st.session_state.user_email = result["email"]
                     st.session_state.screen     = "home"
                     st.session_state.pop("just_registered", None)
+
+                    # Server-side truth about whether this is this user's
+                    # very first login ever — not guessable from the
+                    # login page itself, since the app doesn't know who's
+                    # logging in until after this point.
+                    st.session_state.is_first_login = record_login(result["email"])
 
                     # If this user already has study material from a
                     # previous session, load the most recent one so the

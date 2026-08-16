@@ -3,7 +3,7 @@ from data.document_processor import extract_text
 from data.ai_agents import detect_subject, generate_summary, generate_flashcards, generate_quiz, generate_study_plan
 from data.database import save_document, save_results, get_user_documents, delete_document as delete_document_db
 from data.vector_store import store_document, delete_document as delete_document_vectors
-from data.data_store import load_document_into_session, clear_current_document
+from data.data_store import load_document_into_session
 from components.about_section import render_sidebar_footer
 
 
@@ -19,6 +19,47 @@ def _nav_button(label: str, target_screen: str, current_screen: str):
         label, use_container_width=True,
         type="primary" if current_screen == target_screen else "secondary",
     )
+
+
+@st.dialog("Delete Study Material")
+def _confirm_delete_dialog(doc_id: int, filename: str):
+    """A real modal popup (like a Flutter AlertDialog) — clicking the
+    trash icon opens this instead of deleting immediately. Nothing is
+    removed unless the user explicitly confirms here."""
+    st.markdown(f"""
+    <div style='font-size:14px; color:#4A3A40; line-height:1.6;'>
+      Are you sure you want to delete <b>{filename}</b>?
+    </div>
+    <div style='background:#FEF2F2; border:1px solid #FECACA; border-radius:10px;
+                padding:11px 14px; margin-top:14px; font-size:12.5px; color:#991B1B;
+                display:flex; gap:8px; align-items:flex-start;'>
+      <span style='font-size:14px;'>⚠️</span>
+      <span>This action cannot be undone. The document, its generated summary,
+      flashcards, quiz, study plan, and chat history will be permanently removed.</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("<div style='height:18px'></div>", unsafe_allow_html=True)
+    col_cancel, col_delete = st.columns(2)
+    with col_cancel:
+        if st.button("Cancel", use_container_width=True):
+            st.rerun()
+    with col_delete:
+        with st.container(key="danger_delete_btn"):
+            if st.button("🗑  Delete Permanently", use_container_width=True, type="primary"):
+                delete_document_db(st.session_state.user_email, doc_id)
+                delete_document_vectors(st.session_state.user_email, doc_id)
+                if st.session_state.doc_id == doc_id:
+                    st.session_state.doc_id        = None
+                    st.session_state.doc_name      = ""
+                    st.session_state.doc_text      = ""
+                    st.session_state.doc_processed = False
+                    st.session_state.ai_summary    = ""
+                    st.session_state.ai_flashcards = []
+                    st.session_state.ai_quiz       = []
+                    st.session_state.ai_study_plan = []
+                    st.session_state.chat_messages = []
+                st.rerun()
 
 
 def process_document(file):
@@ -126,37 +167,29 @@ def render_dashboard_sidebar():
             st.session_state.screen = "chat"
             st.rerun()
 
-        # Previous documents are fetched once and reused below both for
-        # the "has this user uploaded anything yet?" check and the list.
-        docs = get_user_documents(st.session_state.user_email)
-        has_material = st.session_state.doc_processed or bool(docs)
+        _section_label("Upload Study Material")
+        st.caption("PDF, DOCX, PPTX, or TXT")
+        uploaded_file = st.file_uploader(
+            "Upload", type=["pdf", "docx", "pptx", "txt", "md"],
+            label_visibility="collapsed",
+        )
+        if uploaded_file and uploaded_file.name != st.session_state.doc_name:
+            process_document(uploaded_file)
+            st.rerun()
 
-        if has_material:
-            _section_label("Upload Study Material")
-            st.caption("PDF, DOCX, PPTX, or TXT")
-            uploaded_file = st.file_uploader(
-                "Upload", type=["pdf", "docx", "pptx", "txt", "md"],
-                label_visibility="collapsed",
-            )
-            if uploaded_file and uploaded_file.name != st.session_state.doc_name:
-                process_document(uploaded_file)
-                st.rerun()
-
-            if st.session_state.doc_processed and st.session_state.doc_name:
-                st.markdown(f"""
-                <div style='background:#F0FDF4; border:1px solid #86EFAC; border-radius:10px;
-                            padding:10px 12px; font-size:12px; color:#166534; margin-top:8px;'>
-                  ✅ <b>Active:</b> {st.session_state.doc_name}
-                </div>""", unsafe_allow_html=True)
-                st.markdown("<div style='height:6px'></div>", unsafe_allow_html=True)
-                if st.button("🧹 Clear Dashboard", use_container_width=True,
-                             help="Return to the empty upload state — your document stays saved"):
-                    clear_current_document()
-                    st.rerun()
+        if st.session_state.doc_processed and st.session_state.doc_name:
+            st.markdown(f"""
+            <div style='background:#F0FDF4; border:1px solid #86EFAC; border-radius:10px;
+                        padding:10px 12px; font-size:12px; color:#166534; margin-top:8px;'>
+              ✅ <b>Active:</b> {st.session_state.doc_name}
+            </div>""", unsafe_allow_html=True)
 
         # ── Past Documents ──
-        if docs:
-            _section_label("Previous Documents")
+        _section_label("Previous Documents")
+        docs = get_user_documents(st.session_state.user_email)
+        if not docs:
+            st.caption("No documents yet.")
+        else:
             for doc in docs:
                 col_btn, col_date, col_del = st.columns([3, 1.5, 0.7])
                 label = doc["filename"][:20] + "…" if len(doc["filename"]) > 20 else doc["filename"]
@@ -170,25 +203,16 @@ def render_dashboard_sidebar():
                     st.markdown(f"<div style='font-size:10px; color:#9E828D; padding-top:8px;'>{date}</div>",
                                 unsafe_allow_html=True)
                 with col_del:
-                    confirm_key = f"confirm_del_{doc['id']}"
-                    if st.session_state.get(confirm_key):
-                        if st.button("✅", key=f"del_yes_{doc['id']}", help="Confirm permanent delete"):
-                            delete_document_db(st.session_state.user_email, doc["id"])
-                            delete_document_vectors(st.session_state.user_email, doc["id"])
-                            if st.session_state.doc_id == doc["id"]:
-                                clear_current_document()
-                            st.session_state.pop(confirm_key, None)
-                            st.rerun()
-                    else:
+                    with st.container(key=f"del_trigger_{doc['id']}"):
                         if st.button("🗑", key=f"del_{doc['id']}", help="Delete this document permanently"):
-                            st.session_state[confirm_key] = True
-                            st.rerun()
+                            _confirm_delete_dialog(doc["id"], doc["filename"])
 
         # ── User Card ──
         _section_label("Account")
         initials = "".join(w[0] for w in st.session_state.user_name.split()[:2]).upper()
         st.markdown(f"""
-        <div class="sidebar-account-card">
+        <div style='background:#FDF9FA; border:1px solid #EADCE0; border-radius:12px;
+                    padding:12px; display:flex; align-items:center; gap:10px'>
           <div style='width:34px; height:34px; border-radius:50%; background:#802B45;
                       color:white; display:flex; align-items:center; justify-content:center;
                       font-weight:700; font-size:12px; flex-shrink:0'>{initials}</div>
@@ -227,4 +251,4 @@ def render_chat_sidebar():
             from data.database import clear_chat_history
             clear_chat_history(st.session_state.user_email, st.session_state.doc_id)
             st.session_state.chat_messages = []
-            st.rerun()
+            st.rerun() 

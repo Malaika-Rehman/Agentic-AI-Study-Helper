@@ -12,6 +12,8 @@ def init_state():
         "user_name":        "",
         "student_id":       "",
         "user_email":       "",
+        "is_first_login":   False,
+        "sidebar_collapsed": False,
 
         # Course
         "selected_course":  "CS301 – Cloud Computing",

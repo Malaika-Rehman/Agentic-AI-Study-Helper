@@ -11,6 +11,19 @@ def render_home():
 
     render_dashboard_sidebar()
 
+    # ── One-time welcome banner (only true right after this user's
+    #    very first-ever login, tracked server-side in the users table) ──
+    if st.session_state.is_first_login:
+        st.markdown(f"""
+        <div style='background:#FDF4F0; border:1px solid #F3D9C4; border-radius:12px;
+                    padding:14px 18px; margin-bottom:14px; font-size:14px; color:#7A4A2A;'>
+          🎉 <b>Welcome, {st.session_state.user_name}!</b> Upload your first document below
+          to get started — your AI summary, flashcards, quiz, and study plan will all be
+          generated automatically.
+        </div>
+        """, unsafe_allow_html=True)
+        st.session_state.is_first_login = False  # one-time only
+
     # ── Title Bar ──
     course_list = list(COURSES.keys())
     if st.session_state.selected_course not in course_list:
@@ -41,25 +54,29 @@ def render_home():
 
     # ── No document uploaded yet ──
     if not st.session_state.doc_processed:
-        st.markdown("""
-        <div class='dash-upload-card'>
-          <div style='font-size:40px; margin-bottom:16px;'>📄</div>
-          <div style='font-size:18px; font-weight:700; color:#1A0A0F; margin-bottom:8px;'>
-            Upload Your Study Material
-          </div>
-          <div style='font-size:14px; color:#7A5864; max-width:400px; margin:0 auto;'>
-            Click below or drag a file in. The AI will automatically detect the subject
-            and generate your summary, flashcards, quiz, and study plan.
-          </div>
-        </div>
-        """, unsafe_allow_html=True)
+        with st.container(border=True, key="dash_upload_container"):
+            st.markdown("""
+            <div style='text-align:center; padding: 24px 24px 4px;'>
+              <div style='font-size:40px; margin-bottom:16px;'>📄</div>
+              <div style='font-size:18px; font-weight:700; color:#1A0A0F; margin-bottom:8px;'>
+                Upload Your Study Material
+              </div>
+              <div style='font-size:14px; color:#7A5864; max-width:420px; margin:0 auto 22px;'>
+                Add your notes, PDFs, or study files to get started. The AI will
+                automatically detect the subject and generate your summary,
+                flashcards, quiz, and study plan.
+              </div>
+            </div>
+            """, unsafe_allow_html=True)
 
-        _, col_upl, _ = st.columns([1, 3, 1])
-        with col_upl:
-            dash_file = st.file_uploader(
-                "Upload study material", type=["pdf", "docx", "pptx", "txt", "md"],
-                label_visibility="collapsed", key="dash_uploader",
-            )
+            _, col_upl, _ = st.columns([1, 2, 1])
+            with col_upl:
+                dash_file = st.file_uploader(
+                    "Upload study material", type=["pdf", "docx", "pptx", "txt", "md"],
+                    label_visibility="collapsed", key="dash_uploader",
+                )
+            st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+
         if dash_file and dash_file.name != st.session_state.doc_name:
             process_document(dash_file)
             st.rerun()
