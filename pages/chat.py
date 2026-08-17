@@ -68,21 +68,24 @@ def render_chat():
             save_message(st.session_state.user_email, st.session_state.doc_id, "user", query)
             st.session_state.chat_messages.append({"role": "user", "content": query})
 
-            with st.spinner("Thinking..."):
-                # RAG — retrieve relevant chunks from ChromaDB
-                context = retrieve_chunks(
-                    st.session_state.user_email,
-                    st.session_state.doc_id,
-                    query,
-                    n_results=5
-                )
-                # Fallback to full doc text if ChromaDB returns nothing
-                if not context:
-                    context = st.session_state.doc_text[:4000]
+            try:
+                with st.spinner("Thinking..."):
+                    # RAG — retrieve relevant chunks from ChromaDB
+                    context = retrieve_chunks(
+                        st.session_state.user_email,
+                        st.session_state.doc_id,
+                        query,
+                        n_results=5
+                    )
+                    # Fallback to full doc text if ChromaDB returns nothing
+                    if not context:
+                        context = st.session_state.doc_text[:4000]
 
-                reply = answer_question(query, context, course_name)
+                    reply = answer_question(query, context, course_name)
 
-            # Save AI reply to DB
-            save_message(st.session_state.user_email, st.session_state.doc_id, "assistant", reply)
-            st.session_state.chat_messages.append({"role": "assistant", "content": reply})
-            st.rerun()
+                # Save AI reply to DB
+                save_message(st.session_state.user_email, st.session_state.doc_id, "assistant", reply)
+                st.session_state.chat_messages.append({"role": "assistant", "content": reply})
+                st.rerun()
+            except Exception as e:
+                st.error(f"❌ Failed to generate response: {str(e)}")

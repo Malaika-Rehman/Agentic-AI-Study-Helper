@@ -78,57 +78,60 @@ def process_document(file):
         st.error("❌ File has too little text to process.")
         return
 
-    # Step 2 — Detect subject
-    with st.spinner("🔍 Detecting subject..."):
-        course = detect_subject(text)
-        st.session_state.selected_course = course
-    st.success(f"📚 Detected: **{course}**")
+    try:
+        # Step 2 — Detect subject
+        with st.spinner("🔍 Detecting subject..."):
+            course = detect_subject(text)
+            st.session_state.selected_course = course
+        st.success(f"📚 Detected: **{course}**")
 
-    # Step 3 — Save document to SQLite
-    with st.spinner("💾 Saving document..."):
-        doc_id = save_document(st.session_state.user_email, file.name, course, text)
-        st.session_state.doc_id   = doc_id
-        st.session_state.doc_name = file.name
-        st.session_state.doc_text = text
+        # Step 3 — Save document to SQLite
+        with st.spinner("💾 Saving document..."):
+            doc_id = save_document(st.session_state.user_email, file.name, course, text)
+            st.session_state.doc_id   = doc_id
+            st.session_state.doc_name = file.name
+            st.session_state.doc_text = text
 
-    # Step 4 — Store in ChromaDB for RAG
-    with st.spinner("🧠 Indexing for semantic search..."):
-        store_document(st.session_state.user_email, doc_id, text)
+        # Step 4 — Store in ChromaDB for RAG
+        with st.spinner("🧠 Indexing for semantic search..."):
+            store_document(st.session_state.user_email, doc_id, text)
 
-    # Step 5 — Run all agents
-    with st.spinner("📝 Generating summary..."):
-        summary = generate_summary(text, course)
-        st.session_state.ai_summary = summary
+        # Step 5 — Run all agents
+        with st.spinner("📝 Generating summary..."):
+            summary = generate_summary(text, course)
+            st.session_state.ai_summary = summary
 
-    with st.spinner("🃏 Creating flashcards..."):
-        flashcards = generate_flashcards(text, course)
-        st.session_state.ai_flashcards = flashcards
-        st.session_state.fc_index      = 0
-        st.session_state.fc_flipped    = False
+        with st.spinner("🃏 Creating flashcards..."):
+            flashcards = generate_flashcards(text, course)
+            st.session_state.ai_flashcards = flashcards
+            st.session_state.fc_index      = 0
+            st.session_state.fc_flipped    = False
 
-    with st.spinner("🧪 Building quiz..."):
-        quiz = generate_quiz(text, course)
-        st.session_state.ai_quiz      = quiz
-        st.session_state.quiz_index   = 0
-        st.session_state.quiz_answered = None
+        with st.spinner("🧪 Building quiz..."):
+            quiz = generate_quiz(text, course)
+            st.session_state.ai_quiz      = quiz
+            st.session_state.quiz_index   = 0
+            st.session_state.quiz_answered = None
 
-    with st.spinner("📅 Creating study plan..."):
-        study_plan = generate_study_plan(text, course)
-        st.session_state.ai_study_plan = study_plan
+        with st.spinner("📅 Creating study plan..."):
+            study_plan = generate_study_plan(text, course)
+            st.session_state.ai_study_plan = study_plan
 
-    # Step 6 — Save all results to SQLite
-    with st.spinner("💾 Saving results..."):
-        save_results(
-            st.session_state.user_email, doc_id, course,
-            summary,
-            [list(f) for f in flashcards],
-            [list(q) for q in quiz],
-            [list(p) for p in study_plan],
-        )
-        st.session_state.chat_messages = []
-        st.session_state.doc_processed = True
+        # Step 6 — Save all results to SQLite
+        with st.spinner("💾 Saving results..."):
+            save_results(
+                st.session_state.user_email, doc_id, course,
+                summary,
+                [list(f) for f in flashcards],
+                [list(q) for q in quiz],
+                [list(p) for p in study_plan],
+            )
+            st.session_state.chat_messages = []
+            st.session_state.doc_processed = True
 
-    st.success("✅ Done! Check the tabs below.")
+        st.success("✅ Done! Check the tabs below.")
+    except Exception as e:
+        st.error(f"❌ Error processing document with AI agents: {str(e)}")
 
 
 def render_auth_sidebar():

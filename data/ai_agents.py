@@ -1,15 +1,24 @@
 import os
 import json
 import re
+from dotenv import load_dotenv
 from groq import Groq
 
-def get_client():
-    api_key = os.getenv("GROQ_API_KEY")
-    if not api_key:
-        raise ValueError("GROQ_API_KEY not found. Please add it to your .env file.")
-    return Groq(api_key=api_key)
+load_dotenv()
 
-MODEL = "llama-3.3-70b-versatile"
+# Preferred candidate models in order of priority
+DEFAULT_CANDIDATES = [
+    "groq/compound-mini",
+    "openai/gpt-oss-20b",
+    "allam-2-7b",
+    "qwen/qwen3.6-27b",
+    "openai/gpt-oss-120b",
+    "llama-3.3-70b-versatile",
+    "llama-3.1-8b-instant",
+    "llama3-70b-8192",
+]
+
+_ACTIVE_MODEL = None
 
 FIXED_COURSES = [
     "CS301 – Cloud Computing",
@@ -18,18 +27,77 @@ FIXED_COURSES = [
 ]
 
 
+def get_api_key() -> str:
+    key = os.getenv("GROQ_API_KEY", "").strip()
+    if not key:
+        try:
+            import streamlit as st
+            if "GROQ_API_KEY" in st.secrets:
+                key = str(st.secrets["GROQ_API_KEY"]).strip()
+        except Exception:
+            pass
+    return key
+
+
+def get_client():
+    api_key = get_api_key()
+    if not api_key:
+        raise ValueError("GROQ_API_KEY not found. Please add it to your .env file or Streamlit secrets.")
+    return Groq(api_key=api_key)
+
+
+def get_configured_model() -> str:
+    global _ACTIVE_MODEL
+    if _ACTIVE_MODEL:
+        return _ACTIVE_MODEL
+
+    env_model = os.getenv("GROQ_MODEL", "").strip()
+    if not env_model:
+        try:
+            import streamlit as st
+            if "GROQ_MODEL" in st.secrets:
+                env_model = str(st.secrets["GROQ_MODEL"]).strip()
+        except Exception:
+            pass
+
+    if env_model:
+        _ACTIVE_MODEL = env_model
+        return _ACTIVE_MODEL
+
+    return DEFAULT_CANDIDATES[0]
+
+
 def _call(system_prompt: str, user_prompt: str, max_tokens: int = 2000) -> str:
-    client   = get_client()
-    response = client.chat.completions.create(
-        model=MODEL,
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user",   "content": user_prompt},
-        ],
-        max_tokens=max_tokens,
-        temperature=0.3,
-    )
-    return response.choices[0].message.content.strip()
+    global _ACTIVE_MODEL
+    client = get_client()
+
+    current_model = get_configured_model()
+    candidate_list = [current_model] + [m for m in DEFAULT_CANDIDATES if m != current_model]
+
+    last_err = None
+    for model_name in candidate_list:
+        try:
+            response = client.chat.completions.create(
+                model=model_name,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user",   "content": user_prompt},
+                ],
+                max_tokens=max_tokens,
+                temperature=0.3,
+            )
+            _ACTIVE_MODEL = model_name
+            content = response.choices[0].message.content or ""
+            # Clean reasoning think tags if present
+            cleaned = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL).strip()
+            return cleaned if cleaned else content.strip()
+        except Exception as e:
+            last_err = e
+            # Try next fallback model
+            continue
+
+    # If all candidates failed, raise the last encountered error
+    raise last_err or RuntimeError("Failed to get response from Groq API.")
 
 
 # ── AGENT 1 — CONTROLLER: Detect Subject ──────────────────────
