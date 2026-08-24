@@ -6,7 +6,6 @@ from groq import Groq
 
 load_dotenv()
 
-# Preferred candidate models in order of priority
 DEFAULT_CANDIDATES = [
     "groq/compound-mini",
     "openai/gpt-oss-20b",
@@ -20,11 +19,131 @@ DEFAULT_CANDIDATES = [
 
 _ACTIVE_MODEL = None
 
-FIXED_COURSES = [
-    "CS301 – Cloud Computing",
-    "CS401 – Computer Vision",
-    "CS501 – Design & Analysis of Algorithm",
-]
+# ─────────────────────────────────────────────────────────────────────────────
+# Keyword map for fast offline fallback.
+# Covers Pakistani university subjects + international subjects.
+# Key = lowercase keyword found in text/filename → Value = clean subject name.
+# ─────────────────────────────────────────────────────────────────────────────
+_SUBJECT_KEYWORDS: dict[str, str] = {
+    # Pakistan / Social Sciences
+    "pakistan stud":        "Pakistan Studies",
+    "pak stud":             "Pakistan Studies",
+    "quaid-e-azam":         "Pakistan Studies",
+    "jinnah":               "Pakistan Studies",
+    "islamic stud":         "Islamic Studies",
+    "islamiat":             "Islamic Studies",
+    "quran":                "Islamic Studies",
+    "hadith":               "Islamic Studies",
+    "fiqh":                 "Islamic Studies",
+    "urdu":                 "Urdu",
+    "ادو":                  "Urdu",   # Arabic/Urdu script hint
+
+    # Sciences
+    "organic chemistry":    "Organic Chemistry",
+    "inorganic chemistry":  "Inorganic Chemistry",
+    "physical chemistry":   "Physical Chemistry",
+    "chemistry":            "Chemistry",
+    "biochemistry":         "Biochemistry",
+    "biology":              "Biology",
+    "botany":               "Botany",
+    "zoology":              "Zoology",
+    "microbiology":         "Microbiology",
+    "genetics":             "Genetics",
+    "anatomy":              "Anatomy",
+    "physiology":           "Physiology",
+    "pharmacology":         "Pharmacology",
+    "pathology":            "Pathology",
+    "physics":              "Physics",
+    "thermodynamics":       "Physics – Thermodynamics",
+    "quantum mechanic":     "Physics – Quantum Mechanics",
+    "electromagnetism":     "Physics – Electromagnetism",
+    "optics":               "Physics – Optics",
+    "calculus":             "Mathematics – Calculus",
+    "linear algebra":       "Mathematics – Linear Algebra",
+    "discrete math":        "Discrete Mathematics",
+    "statistics":           "Statistics",
+    "probability":          "Probability & Statistics",
+    "mathematics":          "Mathematics",
+    "maths":                "Mathematics",
+
+    # CS & IT
+    "artificial intelligence": "Artificial Intelligence",
+    "machine learning":        "Machine Learning",
+    "deep learning":           "Deep Learning",
+    "neural network":          "Deep Learning",
+    "natural language":        "Natural Language Processing",
+    "computer vision":         "Computer Vision",
+    "cloud computing":         "Cloud Computing",
+    "data structure":          "Data Structures",
+    "algorithm":               "Design & Analysis of Algorithms",
+    "operating system":        "Operating Systems",
+    "computer network":        "Computer Networks",
+    "networking":              "Computer Networks",
+    "database":                "Database Systems",
+    "software engineer":       "Software Engineering",
+    "web develop":             "Web Development",
+    "cybersecurity":           "Cybersecurity",
+    "information security":    "Information Security",
+    "computer architecture":   "Computer Architecture",
+    "compiler":                "Compiler Design",
+    "object oriented":         "Object-Oriented Programming",
+    "programming":             "Programming",
+    "python":                  "Python Programming",
+    "java":                    "Java Programming",
+
+    # Engineering
+    "civil engineer":          "Civil Engineering",
+    "mechanical engineer":     "Mechanical Engineering",
+    "electrical engineer":     "Electrical Engineering",
+    "electronics":             "Electronics",
+    "telecommunication":       "Telecommunication",
+    "chemical engineer":       "Chemical Engineering",
+    "thermodynamic":           "Thermodynamics",
+
+    # Business / Economics
+    "economics":               "Economics",
+    "microeconomics":          "Microeconomics",
+    "macroeconomics":          "Macroeconomics",
+    "accounting":              "Accounting",
+    "finance":                 "Finance",
+    "marketing":               "Marketing",
+    "management":              "Management",
+    "business":                "Business Studies",
+    "entrepreneurship":        "Entrepreneurship",
+    "human resource":          "Human Resource Management",
+
+    # Humanities & Social Sciences
+    "history":                 "History",
+    "geography":               "Geography",
+    "sociology":               "Sociology",
+    "psychology":              "Psychology",
+    "philosophy":              "Philosophy",
+    "political science":       "Political Science",
+    "international relation":  "International Relations",
+    "law":                     "Law",
+    "english literature":      "English Literature",
+    "literature":              "Literature",
+    "english":                 "English",
+    "linguistics":             "Linguistics",
+    "journalism":              "Journalism & Mass Communication",
+    "mass communication":      "Mass Communication",
+
+    # Medical
+    "mbbs":                    "Medical Studies",
+    "medicine":                "Medicine",
+    "nursing":                 "Nursing",
+    "dentistry":               "Dentistry",
+    "public health":           "Public Health",
+
+    # Others
+    "environmental":           "Environmental Science",
+    "agriculture":             "Agriculture",
+    "architecture":            "Architecture",
+    "fashion":                 "Fashion Design",
+    "fine arts":               "Fine Arts",
+    "education":               "Education",
+    "food science":            "Food Science",
+}
 
 
 def get_api_key() -> str:
@@ -42,7 +161,9 @@ def get_api_key() -> str:
 def get_client():
     api_key = get_api_key()
     if not api_key:
-        raise ValueError("GROQ_API_KEY not found. Please add it to your .env file or Streamlit secrets.")
+        raise ValueError(
+            "GROQ_API_KEY not found. Please add it to your .env file or Streamlit secrets."
+        )
     return Groq(api_key=api_key)
 
 
@@ -50,7 +171,6 @@ def get_configured_model() -> str:
     global _ACTIVE_MODEL
     if _ACTIVE_MODEL:
         return _ACTIVE_MODEL
-
     env_model = os.getenv("GROQ_MODEL", "").strip()
     if not env_model:
         try:
@@ -59,21 +179,17 @@ def get_configured_model() -> str:
                 env_model = str(st.secrets["GROQ_MODEL"]).strip()
         except Exception:
             pass
-
     if env_model:
         _ACTIVE_MODEL = env_model
         return _ACTIVE_MODEL
-
     return DEFAULT_CANDIDATES[0]
 
 
 def _call(system_prompt: str, user_prompt: str, max_tokens: int = 2000) -> str:
     global _ACTIVE_MODEL
     client = get_client()
-
     current_model = get_configured_model()
     candidate_list = [current_model] + [m for m in DEFAULT_CANDIDATES if m != current_model]
-
     last_err = None
     for model_name in candidate_list:
         try:
@@ -88,110 +204,257 @@ def _call(system_prompt: str, user_prompt: str, max_tokens: int = 2000) -> str:
             )
             _ACTIVE_MODEL = model_name
             content = response.choices[0].message.content or ""
-            # Clean reasoning think tags if present
             cleaned = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL).strip()
             return cleaned if cleaned else content.strip()
         except Exception as e:
             last_err = e
-            # Try next fallback model
             continue
-
-    # If all candidates failed, raise the last encountered error
     raise last_err or RuntimeError("Failed to get response from Groq API.")
 
 
-# ── AGENT 1 — CONTROLLER: Detect Subject ──────────────────────
-def detect_subject(text: str) -> str:
-    system = """You are a subject classifier. Decide which ONE of these 3 courses the document belongs to:
-- CS301 – Cloud Computing
-- CS401 – Computer Vision
-- CS501 – Design & Analysis of Algorithm
-Reply with ONLY the exact course name. Nothing else."""
-    result = _call(system, f"Document (first 3000 chars):\n{text[:3000]}", max_tokens=50)
-    for course in FIXED_COURSES:
-        if course.lower() in result.lower():
-            return course
-    text_lower = text.lower()
-    if any(w in text_lower for w in ["computer vision", "image processing", "object detection", "opencv", "segmentation"]):
-        return "CS401 – Computer Vision"
-    elif any(w in text_lower for w in ["algorithm", "complexity", "big o", "sorting", "graph", "dynamic programming", "greedy"]):
-        return "CS501 – Design & Analysis of Algorithm"
-    return "CS301 – Cloud Computing"
+# ─────────────────────────────────────────────────────────────────────────────
+# HELPER — clean a filename into a readable subject hint
+# ─────────────────────────────────────────────────────────────────────────────
+def _parse_filename(filename: str) -> str:
+    """
+    Turn a filename into a readable subject hint.
+    Examples:
+      "Pakistan_Studies_Chapter3.pdf" → "Pakistan Studies Chapter3"
+      "CS301-DataStructures.pdf"      → "CS301 DataStructures"
+      "notes.pdf"                     → ""   (too generic, ignore)
+    """
+    name = os.path.splitext(filename)[0]
+    name = re.sub(r"[_\-]+", " ", name).strip()
+
+    # If it's a single very generic word, don't use it
+    generic = {"notes", "document", "file", "doc", "pdf", "slides",
+               "lecture", "lec", "chapter", "ch", "unit", "book",
+               "assignment", "homework", "exam", "test", "quiz", "final", "mid"}
+    words = name.lower().split()
+    meaningful_words = [w for w in words if w not in generic and len(w) > 1]
+
+    if not meaningful_words:
+        return ""
+
+    return name.title()
 
 
-# ── AGENT 2 — SUMMARY ─────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+# HELPER — keyword scan (offline, instant, no API cost)
+# ─────────────────────────────────────────────────────────────────────────────
+def _keyword_detect(text: str, filename: str = "") -> str:
+    """
+    Scan filename + first 3000 chars of text for known subject keywords.
+    Returns a clean subject name if found, else empty string.
+    """
+    haystack = (filename + " " + text[:3000]).lower()
+    # Sort by keyword length descending so longer/more specific keys match first
+    for kw in sorted(_SUBJECT_KEYWORDS.keys(), key=len, reverse=True):
+        if kw in haystack:
+            return _SUBJECT_KEYWORDS[kw]
+    return ""
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# AGENT 1 — CONTROLLER: Detect Subject (truly open, any subject)
+# ─────────────────────────────────────────────────────────────────────────────
+def detect_subject(text: str, filename: str = "") -> str:
+    """
+    Multi-layer subject detection — works for ANY subject, any language.
+
+    Layer 1: Filename parsing        (free, instant)
+    Layer 2: Keyword scan            (free, instant, covers 70+ subjects)
+    Layer 3: LLM open-ended extract  (accurate, uses Groq API)
+    Layer 4: Filename fallback        (if LLM fails)
+    Layer 5: "General Study Material" (last resort — never a wrong CS course)
+
+    NOTE: There are NO hardcoded target courses. The function returns
+    whatever subject the document actually is about.
+    """
+
+    filename_hint = _parse_filename(filename)
+
+    # ── Layer 2: Keyword scan ────────────────────────────────────────────────
+    keyword_result = _keyword_detect(text, filename)
+    if keyword_result:
+        # Still verify with LLM if we have text, to get the precise name
+        try:
+            refined = _llm_detect(text, filename_hint or keyword_result)
+            if refined and refined.lower() != "unknown":
+                return refined
+        except Exception:
+            pass
+        return keyword_result
+
+    # ── Layer 3: LLM open-ended detection ───────────────────────────────────
+    try:
+        result = _llm_detect(text, filename_hint)
+        if result and result.lower() not in ("unknown", "general", ""):
+            return result
+    except Exception:
+        pass
+
+    # ── Layer 4: Filename fallback ───────────────────────────────────────────
+    if filename_hint:
+        return filename_hint
+
+    # ── Layer 5: Last resort ─────────────────────────────────────────────────
+    return "General Study Material"
+
+
+def _llm_detect(text: str, hint: str = "") -> str:
+    """Ask the LLM to identify the subject. Completely open-ended — no list."""
+    hint_line = f'The filename suggests: "{hint}". Use this as a strong hint.\n' if hint else ""
+
+    system = """You are an expert academic subject identifier.
+
+Your task: Read the document and identify its subject or course name.
+
+IMPORTANT RULES:
+- There is NO predefined list — identify the actual subject freely.
+- Return ONLY the subject name. No explanation, no punctuation at the end.
+- If there is a course code, include it: "CS301 – Data Structures"
+- For general subjects: "Pakistan Studies", "Organic Chemistry", "World History"
+- Be specific: "Thermodynamics" not just "Physics"
+- Maximum 7 words.
+- If truly uncertain, return your best guess — never return "Unknown"."""
+
+    user = f"""{hint_line}Identify the subject of this document.
+Here are the first 2500 characters:
+
+{text[:2500]}
+
+Reply with ONLY the subject name:"""
+
+    result = _call(system, user, max_tokens=25).strip()
+    # Strip quotes/punctuation the model might add
+    result = re.sub(r'^["\']|["\']$', "", result).strip(" .,:")
+    return result
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# AGENT 2 — SUMMARY
+# ─────────────────────────────────────────────────────────────────────────────
 def generate_summary(text: str, course: str) -> str:
-    system = """You are an expert academic summarizer for university students.
-Create a clear, structured summary with these sections:
-1. **Overview** (2-3 sentences)
-2. **Key Concepts** (bullet points)
-3. **Important Definitions** (bullet points)
-4. **Core Takeaways** (3-5 bullet points)"""
-    return _call(system, f"Course: {course}\n\nMaterial:\n{text[:6000]}\n\nGenerate a structured summary.", 1500)
+    system = f"""You are an expert academic summarizer helping a university student
+studying {course}. Create a clear, structured summary with these exact sections:
+
+1. **Overview** (2-3 sentences about the main topic)
+2. **Key Concepts** (bullet points of the main ideas)
+3. **Important Definitions** (bullet points: Term – Definition)
+4. **Core Takeaways** (3-5 actionable bullet points)
+
+Base everything strictly on the provided document content."""
+
+    return _call(
+        system,
+        f"Course: {course}\n\nDocument:\n{text[:6000]}\n\nGenerate a structured summary.",
+        1500,
+    )
 
 
-# ── AGENT 3 — FLASHCARDS ──────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+# AGENT 3 — FLASHCARDS
+# ─────────────────────────────────────────────────────────────────────────────
 def generate_flashcards(text: str, course: str) -> list[tuple[str, str]]:
-    system = """You are a flashcard generation expert. Create exactly 8 flashcards.
-Respond with VALID JSON ONLY — no markdown, no explanation:
-[{"question": "...", "answer": "..."}, ...]"""
-    raw = _call(system, f"Course: {course}\n\nMaterial:\n{text[:6000]}\n\nGenerate 8 flashcards as JSON.", 2000)
+    system = f"""You are a flashcard generation expert for {course}.
+Create exactly 8 flashcards based strictly on the provided document.
+Cover the most important concepts, definitions, and facts.
+Respond with VALID JSON ONLY — no markdown fences, no explanation:
+[{{"question": "...", "answer": "..."}}, ...]"""
+
+    raw = _call(
+        system,
+        f"Course: {course}\n\nDocument:\n{text[:6000]}\n\nGenerate 8 flashcards as JSON.",
+        2000,
+    )
     try:
         cards = json.loads(re.sub(r"```json|```", "", raw).strip())
-        return [(c["question"], c["answer"]) for c in cards if "question" in c and "answer" in c]
+        result = [(c["question"], c["answer"]) for c in cards
+                  if "question" in c and "answer" in c]
+        if result:
+            return result
     except Exception:
-        return [("Could not generate flashcards.", "Please try uploading the document again.")]
+        pass
+    return [("Could not generate flashcards.", "Please try re-uploading the document.")]
 
 
-# ── AGENT 4 — QUIZ ────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+# AGENT 4 — QUIZ
+# ─────────────────────────────────────────────────────────────────────────────
 def generate_quiz(text: str, course: str) -> list[tuple[str, list[str], int]]:
-    system = """You are a quiz generation expert. Create exactly 5 MCQs.
-Respond with VALID JSON ONLY — no markdown, no explanation:
-[{"question": "...", "options": ["A", "B", "C", "D"], "correct": 0}, ...]
-Where "correct" is the 0-based index of the correct option."""
-    raw = _call(system, f"Course: {course}\n\nMaterial:\n{text[:6000]}\n\nGenerate 5 MCQs as JSON.", 2000)
+    system = f"""You are a quiz generation expert for {course}.
+Create exactly 5 multiple-choice questions (MCQs) based strictly on the document.
+Respond with VALID JSON ONLY — no markdown fences, no explanation:
+[{{"question": "...", "options": ["A...", "B...", "C...", "D..."], "correct": 0}}, ...]
+"correct" is the 0-based index of the correct answer."""
+
+    raw = _call(
+        system,
+        f"Course: {course}\n\nDocument:\n{text[:6000]}\n\nGenerate 5 MCQs as JSON.",
+        2000,
+    )
     try:
         questions = json.loads(re.sub(r"```json|```", "", raw).strip())
-        return [(q["question"], q["options"], q["correct"]) for q in questions
-                if "question" in q and "options" in q and "correct" in q]
+        result = [
+            (q["question"], q["options"], int(q["correct"]))
+            for q in questions
+            if "question" in q and "options" in q and "correct" in q
+        ]
+        if result:
+            return result
     except Exception:
-        return [("Could not generate quiz.", ["Try again", "Re-upload document", "Check format", "Contact support"], 0)]
+        pass
+    return [("Could not generate quiz questions.", ["Try again", "Re-upload", "Check format", "Contact support"], 0)]
 
 
-# ── AGENT 5 — PLANNER ─────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
+# AGENT 5 — STUDY PLANNER
+# ─────────────────────────────────────────────────────────────────────────────
 def generate_study_plan(text: str, course: str) -> list[tuple[str, str, bool]]:
-    system = """You are an academic study planner. Create a 4-week study plan.
-Respond with VALID JSON ONLY — no markdown, no explanation:
-[{"week": "Week 1 – Title", "description": "...", "completed": false}, ...]
+    system = f"""You are an academic study planner for {course}.
+Create a practical 4-week study plan based on the actual topics in the document.
+Each week should build on the previous one.
+Respond with VALID JSON ONLY — no markdown fences, no explanation:
+[{{"week": "Week 1 – Topic Title", "description": "What to study and how.", "completed": false}}, ...]
 Generate exactly 4 weeks."""
-    raw = _call(system, f"Course: {course}\n\nMaterial:\n{text[:5000]}\n\nGenerate 4-week plan as JSON.", 1500)
+
+    raw = _call(
+        system,
+        f"Course: {course}\n\nDocument:\n{text[:5000]}\n\nGenerate a 4-week study plan as JSON.",
+        1500,
+    )
     try:
         plan = json.loads(re.sub(r"```json|```", "", raw).strip())
-        return [(p["week"], p["description"], p.get("completed", False)) for p in plan]
+        result = [(p["week"], p["description"], bool(p.get("completed", False))) for p in plan]
+        if result:
+            return result
     except Exception:
-        return [
-            ("Week 1 – Foundations",    "Review core concepts from the document.",   False),
-            ("Week 2 – Deep Dive",      "Study each topic in detail with examples.", False),
-            ("Week 3 – Practice",       "Complete flashcards and quiz questions.",    False),
-            ("Week 4 – Revision",       "Full revision and timed self-assessment.",   False),
-        ]
+        pass
+    return [
+        ("Week 1 – Foundations",   "Review core concepts and key definitions from the document.", False),
+        ("Week 2 – Deep Dive",     "Study each major topic in depth with examples and notes.",    False),
+        ("Week 3 – Practice",      "Complete all flashcards and quiz questions multiple times.",   False),
+        ("Week 4 – Final Revision","Full revision, timed self-assessment, and weak-area review.",  False),
+    ]
 
 
-# ── CHAT AGENT — RAG + General Fallback ───────────────────────
-def answer_question(question: str, doc_context: str, course: str, use_general: bool = True) -> str:
+# ─────────────────────────────────────────────────────────────────────────────
+# CHAT AGENT — RAG + General Fallback
+# ─────────────────────────────────────────────────────────────────────────────
+def answer_question(question: str, doc_context: str, course: str) -> str:
     if doc_context.strip():
-        system = f"""You are an intelligent study assistant for {course}.
+        system = f"""You are an intelligent study assistant for {course} at SBBWU.
 Answer the student's question using the provided document context.
-If the answer isn't in the context and use_general is true, use your general knowledge but clearly say so.
-Be clear, accurate, and educational."""
-        user = f"""Document context:
-{doc_context}
-
-Student question: {question}"""
+If the answer is not in the context, use your general knowledge but say:
+"This isn't directly in your document, but generally..."
+Be clear, accurate, concise, and educational."""
+        user = f"Document context:\n{doc_context}\n\nStudent question: {question}"
     else:
-        system = f"""You are an intelligent study assistant for {course}.
-Answer the student's question using your general knowledge.
-Be clear, accurate, and educational. Mention that no document is currently loaded."""
+        system = f"""You are an intelligent study assistant for {course} at SBBWU.
+No document is loaded. Answer using your general knowledge.
+Tell the student to upload a document for document-specific answers.
+Be clear, accurate, and educational."""
         user = question
 
     return _call(system, user, max_tokens=800)

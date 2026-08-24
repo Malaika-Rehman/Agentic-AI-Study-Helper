@@ -8,11 +8,16 @@ groq==1.5.0
 chromadb>=0.5.0
 
 # ── Document Extraction ──
-pypdf==5.9.0
-python-docx==1.2.0
-python-pptx==1.0.2
-lxml==6.0.2
-Pillow>=10.0.0
+pypdf==5.9.0          # PDF
+python-docx==1.2.0    # DOCX, DOC (fallback)
+python-pptx==1.0.2    # PPTX
+olefile>=0.47         # PPT (legacy binary), DOC (fallback)
+openpyxl>=3.1.0       # XLSX
+xlrd>=2.0.1           # XLS (legacy Excel)
+striprtf>=0.0.26      # RTF
+beautifulsoup4>=4.12  # HTML
+lxml==6.0.2           # XML / HTML parser backend
+Pillow>=10.0.0        # Image support (future OCR)
 
 # ── Utilities ──
 python-dotenv==1.2.2

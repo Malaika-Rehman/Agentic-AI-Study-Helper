@@ -8,13 +8,10 @@ from components.about_section import render_sidebar_footer
 
 
 def _section_label(text: str):
-    """Small uppercase section heading used throughout the sidebar
-    instead of plain st.divider() rules, for a cleaner, app-like feel."""
     st.markdown(f"<div class='sidebar-section-label'>{text}</div>", unsafe_allow_html=True)
 
 
 def _nav_button(label: str, target_screen: str, current_screen: str):
-    """A nav row that visually highlights when it's the active screen."""
     return st.button(
         label, use_container_width=True,
         type="primary" if current_screen == target_screen else "secondary",
@@ -23,9 +20,6 @@ def _nav_button(label: str, target_screen: str, current_screen: str):
 
 @st.dialog("Delete Study Material")
 def _confirm_delete_dialog(doc_id: int, filename: str):
-    """A real modal popup (like a Flutter AlertDialog) — clicking the
-    trash icon opens this instead of deleting immediately. Nothing is
-    removed unless the user explicitly confirms here."""
     st.markdown(f"""
     <div style='font-size:14px; color:#4A3A40; line-height:1.6;'>
       Are you sure you want to delete <b>{filename}</b>?
@@ -63,10 +57,11 @@ def _confirm_delete_dialog(doc_id: int, filename: str):
 
 
 def process_document(file):
-    """Extract → detect → run all 5 agents → save to SQLite + ChromaDB.
+    """
+    Full pipeline:
+    Extract → Detect Subject (from content + filename) → All 5 agents → Save SQLite + ChromaDB.
 
-    Shared between the sidebar uploader and the dashboard's empty-state
-    upload card so both trigger the exact same pipeline.
+    Now works for ANY subject — Pakistan Studies, Mathematics, Biology, CS, etc.
     """
     with st.spinner("📄 Reading document..."):
         text, error = extract_text(file)
@@ -79,11 +74,11 @@ def process_document(file):
         return
 
     try:
-        # Step 2 — Detect subject
-        with st.spinner("🔍 Detecting subject..."):
-            course = detect_subject(text)
+        # Step 2 — Detect subject (passes filename for better accuracy)
+        with st.spinner("🔍 Detecting subject from document..."):
+            course = detect_subject(text, filename=file.name)   # ← filename hint
             st.session_state.selected_course = course
-        st.success(f"📚 Detected: **{course}**")
+        st.success(f"📚 Subject detected: **{course}**")
 
         # Step 3 — Save document to SQLite
         with st.spinner("💾 Saving document..."):
@@ -97,7 +92,7 @@ def process_document(file):
             store_document(st.session_state.user_email, doc_id, text)
 
         # Step 5 — Run all agents
-        with st.spinner("📝 Generating summary..."):
+        with st.spinner(f"📝 Generating summary for {course}..."):
             summary = generate_summary(text, course)
             st.session_state.ai_summary = summary
 
@@ -131,7 +126,7 @@ def process_document(file):
 
         st.success("✅ Done! Check the tabs below.")
     except Exception as e:
-        st.error(f"❌ Error processing document with AI agents: {str(e)}")
+        st.error(f"❌ Error processing document: {str(e)}")
 
 
 def render_auth_sidebar():
@@ -171,9 +166,10 @@ def render_dashboard_sidebar():
             st.rerun()
 
         _section_label("Upload Study Material")
-        st.caption("PDF, DOCX, PPTX, or TXT")
+        st.caption("PDF, DOCX, PPTX, PPT, XLSX, CSV, TXT, HTML, JSON and more")
         uploaded_file = st.file_uploader(
-            "Upload", type=["pdf", "docx", "pptx", "txt", "md"],
+            "Upload",
+            type=None,           # ← accepts every file type
             label_visibility="collapsed",
         )
         if uploaded_file and uploaded_file.name != st.session_state.doc_name:
@@ -181,13 +177,15 @@ def render_dashboard_sidebar():
             st.rerun()
 
         if st.session_state.doc_processed and st.session_state.doc_name:
+            course = st.session_state.get("selected_course", "")
             st.markdown(f"""
             <div style='background:#F0FDF4; border:1px solid #86EFAC; border-radius:10px;
                         padding:10px 12px; font-size:12px; color:#166534; margin-top:8px;'>
-              ✅ <b>Active:</b> {st.session_state.doc_name}
+              ✅ <b>Active:</b> {st.session_state.doc_name}<br>
+              <span style='font-size:11px; color:#15803D;'>📚 {course}</span>
             </div>""", unsafe_allow_html=True)
 
-        # ── Past Documents ──
+        # ── Previous Documents ──
         _section_label("Previous Documents")
         docs = get_user_documents(st.session_state.user_email)
         if not docs:
@@ -197,14 +195,17 @@ def render_dashboard_sidebar():
                 col_btn, col_date, col_del = st.columns([3, 1.5, 0.7])
                 label = doc["filename"][:20] + "…" if len(doc["filename"]) > 20 else doc["filename"]
                 date  = doc["uploaded_at"][:10]
+                # Show detected course as subtitle
                 with col_btn:
                     if st.button(f"📄 {label}", key=f"doc_{doc['id']}", use_container_width=True):
                         if load_document_into_session(doc["id"], st.session_state.user_email):
                             st.session_state.doc_name = doc["filename"]
                             st.rerun()
                 with col_date:
-                    st.markdown(f"<div style='font-size:10px; color:#9E828D; padding-top:8px;'>{date}</div>",
-                                unsafe_allow_html=True)
+                    st.markdown(
+                        f"<div style='font-size:10px; color:#9E828D; padding-top:8px;'>{date}</div>",
+                        unsafe_allow_html=True,
+                    )
                 with col_del:
                     with st.container(key=f"del_trigger_{doc['id']}"):
                         if st.button("🗑", key=f"del_{doc['id']}", help="Delete this document permanently"):
@@ -220,16 +221,19 @@ def render_dashboard_sidebar():
                       color:white; display:flex; align-items:center; justify-content:center;
                       font-weight:700; font-size:12px; flex-shrink:0'>{initials}</div>
           <div>
-            <div style='font-size:13px; font-weight:600; color:#1A0A0F;'>{st.session_state.user_name}</div>
+            <div style='font-size:13px; font-weight:600; color:#1A0A0F;'>
+              {st.session_state.user_name}
+            </div>
             <div style='font-size:11px; color:#7A5864;'>{st.session_state.student_id}</div>
           </div>
         </div>""", unsafe_allow_html=True)
 
         st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
-        if st.button("Log Out", use_container_width=True):
-            for key in list(st.session_state.keys()):
-                del st.session_state[key]
-            st.rerun()
+        with st.container(key="sidebar_logout_wrap"):
+            if st.button("Log Out", use_container_width=True):
+                for key in list(st.session_state.keys()):
+                    del st.session_state[key]
+                st.rerun()
 
 
 def render_chat_sidebar():
@@ -243,10 +247,12 @@ def render_chat_sidebar():
 
         if st.session_state.doc_processed and st.session_state.doc_name:
             _section_label("Active Context")
+            course = st.session_state.get("selected_course", "")
             st.markdown(f"""
             <div style='background:#F0FDF4; border:1px solid #86EFAC; border-radius:10px;
                         padding:10px 12px; font-size:12px; color:#166534;'>
-              ✅ <b>Context:</b> {st.session_state.doc_name}
+              ✅ <b>Context:</b> {st.session_state.doc_name}<br>
+              <span style='font-size:11px; color:#15803D;'>📚 {course}</span>
             </div>""", unsafe_allow_html=True)
 
         _section_label("Session")
@@ -254,4 +260,4 @@ def render_chat_sidebar():
             from data.database import clear_chat_history
             clear_chat_history(st.session_state.user_email, st.session_state.doc_id)
             st.session_state.chat_messages = []
-            st.rerun() 
+            st.rerun()

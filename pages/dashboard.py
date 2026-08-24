@@ -1,47 +1,45 @@
 import streamlit as st
-from data.app_data import COURSES
+from data.app_data import get_course_info
 from components.sidebar import render_dashboard_sidebar, process_document
 from components.helpers import progress_ring
 
 
 def render_home():
-    course_name = st.session_state.selected_course
-    course      = COURSES.get(course_name, list(COURSES.values())[0])
+    course_name = st.session_state.get("selected_course", "General Study Material")
+    course      = get_course_info(course_name)   # works for ANY subject name
     color       = course["color"]
 
     render_dashboard_sidebar()
 
-    # ── One-time welcome banner (only true right after this user's
-    #    very first-ever login, tracked server-side in the users table) ──
+    # ── One-time welcome banner ──
     if st.session_state.is_first_login:
         st.markdown(f"""
         <div style='background:#FDF4F0; border:1px solid #F3D9C4; border-radius:12px;
                     padding:14px 18px; margin-bottom:14px; font-size:14px; color:#7A4A2A;'>
           🎉 <b>Welcome, {st.session_state.user_name}!</b> Upload your first document below
-          to get started — your AI summary, flashcards, quiz, and study plan will all be
-          generated automatically.
+          to get started — the AI will automatically detect the subject and generate your
+          summary, flashcards, quiz, and study plan.
         </div>
         """, unsafe_allow_html=True)
-        st.session_state.is_first_login = False  # one-time only
+        st.session_state.is_first_login = False
 
     # ── Title Bar ──
-    course_list = list(COURSES.keys())
-    if st.session_state.selected_course not in course_list:
-        st.session_state.selected_course = course_list[0]
-
     col_title, col_course, col_chat = st.columns([2.8, 2, 1.2])
     with col_title:
         st.markdown("<div class='section-title'>Study Workspace</div>", unsafe_allow_html=True)
-        st.markdown("<div class='muted'>Shaheed Benazir Bhutto Women University AI Assistant</div>", unsafe_allow_html=True)
+        st.markdown(
+            "<div class='muted'>Shaheed Benazir Bhutto Women University AI Assistant</div>",
+            unsafe_allow_html=True,
+        )
     with col_course:
-        # Subject is auto-detected from the uploaded document (see detect_subject
-        # in process_document) — no manual selection needed.
+        # Subject is auto-detected from the uploaded document — shown read-only here.
         st.markdown(f"""
         <div style='height:100%; display:flex; align-items:center; justify-content:flex-end;'>
           <div style='background:{color}1A; border:1px solid {color}40; color:{color};
                       border-radius:10px; padding:8px 16px; font-size:13px; font-weight:700;
-                      white-space:nowrap;'>
-            📚 {st.session_state.selected_course}
+                      white-space:nowrap; max-width:220px; overflow:hidden;
+                      text-overflow:ellipsis;' title='{course_name}'>
+            📚 {course_name}
           </div>
         </div>
         """, unsafe_allow_html=True)
@@ -52,7 +50,7 @@ def render_home():
 
     st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
 
-    # ── No document uploaded yet ──
+    # ── No document uploaded yet — show upload card ──
     if not st.session_state.doc_processed:
         with st.container(border=True, key="dash_upload_container"):
             st.markdown("""
@@ -61,10 +59,11 @@ def render_home():
               <div style='font-size:18px; font-weight:700; color:#1A0A0F; margin-bottom:8px;'>
                 Upload Your Study Material
               </div>
-              <div style='font-size:14px; color:#7A5864; max-width:420px; margin:0 auto 22px;'>
-                Add your notes, PDFs, or study files to get started. The AI will
-                automatically detect the subject and generate your summary,
-                flashcards, quiz, and study plan.
+              <div style='font-size:14px; color:#7A5864; max-width:480px; margin:0 auto 22px;'>
+                Upload any subject PDF, DOCX, PPTX, or TXT file.
+                The AI will automatically detect the subject (Pakistan Studies,
+                Mathematics, Computer Science, Biology — anything!) and generate
+                your summary, flashcards, quiz, and personalised study plan.
               </div>
             </div>
             """, unsafe_allow_html=True)
@@ -72,8 +71,10 @@ def render_home():
             _, col_upl, _ = st.columns([1, 2, 1])
             with col_upl:
                 dash_file = st.file_uploader(
-                    "Upload study material", type=["pdf", "docx", "pptx", "txt", "md"],
-                    label_visibility="collapsed", key="dash_uploader",
+                    "Upload study material",
+                    type=["pdf", "docx", "pptx", "txt", "md"],
+                    label_visibility="collapsed",
+                    key="dash_uploader",
                 )
             st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
 
@@ -83,7 +84,7 @@ def render_home():
         return
 
     # ── Agent Banner ──
-    doc_name = st.session_state.doc_name
+    doc_name        = st.session_state.doc_name
     flashcard_count = len(st.session_state.ai_flashcards)
     quiz_count      = len(st.session_state.ai_quiz)
 
@@ -103,7 +104,8 @@ def render_home():
             PLANNER AGENT ACTIVE
           </div>
           <div style='font-size:13px; color:#7A5864; margin-top:3px'>
-            📄 {doc_name} &nbsp;|&nbsp; {flashcard_count} flashcards &nbsp;|&nbsp; {quiz_count} quiz questions
+            📄 {doc_name} &nbsp;|&nbsp; {flashcard_count} flashcards
+            &nbsp;|&nbsp; {quiz_count} quiz questions
           </div>
         </div>
       </div>
@@ -118,14 +120,18 @@ def render_home():
         <div class="stat-card">
           <div class="stat-val">{flashcard_count}</div>
           <div class="stat-lbl">Flashcards Generated</div>
-          <div class="prog-bg"><div class="prog-fill" style="width:100%; background:{color}"></div></div>
+          <div class="prog-bg">
+            <div class="prog-fill" style="width:100%; background:{color}"></div>
+          </div>
         </div>""", unsafe_allow_html=True)
     with c2:
         st.markdown(f"""
         <div class="stat-card">
           <div class="stat-val">{quiz_count}</div>
           <div class="stat-lbl">Quiz Questions</div>
-          <div style='font-size:11px; color:#9E828D; margin-top:10px; font-weight:500;'>Generated from your document</div>
+          <div style='font-size:11px; color:#9E828D; margin-top:10px; font-weight:500;'>
+            Generated from your document
+          </div>
         </div>""", unsafe_allow_html=True)
     with c3:
         plan_count = len(st.session_state.ai_study_plan)
@@ -133,7 +139,9 @@ def render_home():
         <div class="stat-card">
           <div class="stat-val">{plan_progress}%</div>
           <div class="stat-lbl">Study Plan Progress ({plan_count} weeks)</div>
-          <div class="prog-bg"><div class="prog-fill" style="width:{plan_progress}%; background:#22C55E"></div></div>
+          <div class="prog-bg">
+            <div class="prog-fill" style="width:{plan_progress}%; background:#22C55E"></div>
+          </div>
         </div>""", unsafe_allow_html=True)
 
     st.markdown("<div style='height:20px'></div>", unsafe_allow_html=True)
@@ -157,15 +165,29 @@ def render_home():
         if not cards:
             st.info("Upload a document to generate flashcards.")
         else:
-            idx = st.session_state.fc_index % len(cards)
+            idx  = st.session_state.fc_index % len(cards)
             q, a = cards[idx]
 
-            st.markdown(f"<div style='font-size:12px; color:#7A5864; margin-bottom:12px; font-weight:600;'>Card {idx + 1} of {len(cards)}</div>", unsafe_allow_html=True)
+            st.markdown(
+                f"<div style='font-size:12px; color:#7A5864; margin-bottom:12px; font-weight:600;'>"
+                f"Card {idx + 1} of {len(cards)}</div>",
+                unsafe_allow_html=True,
+            )
 
             if not st.session_state.fc_flipped:
-                st.markdown(f"<div class='flashcard'><div class='fc-label'>Question</div><div class='fc-text'>{q}</div><div class='fc-hint'>Click Flip to reveal the answer</div></div>", unsafe_allow_html=True)
+                st.markdown(
+                    f"<div class='flashcard'><div class='fc-label'>Question</div>"
+                    f"<div class='fc-text'>{q}</div>"
+                    f"<div class='fc-hint'>Click Flip to reveal the answer</div></div>",
+                    unsafe_allow_html=True,
+                )
             else:
-                st.markdown(f"<div class='flashcard' style='background:#230810'><div class='fc-label'>Answer</div><div class='fc-text'>{a}</div></div>", unsafe_allow_html=True)
+                st.markdown(
+                    f"<div class='flashcard' style='background:#230810'>"
+                    f"<div class='fc-label'>Answer</div>"
+                    f"<div class='fc-text'>{a}</div></div>",
+                    unsafe_allow_html=True,
+                )
 
             st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
             b1, b2, b3 = st.columns([1.5, 1, 1])
@@ -192,12 +214,19 @@ def render_home():
         if not questions:
             st.info("Upload a document to generate quiz questions.")
         else:
-            q_idx              = st.session_state.quiz_index % len(questions)
+            q_idx                 = st.session_state.quiz_index % len(questions)
             q_text, opts, correct = questions[q_idx]
-            answered           = st.session_state.quiz_answered
+            answered              = st.session_state.quiz_answered
 
-            st.markdown(f"<div style='font-size:12px; color:#7A5864; margin-bottom:10px; font-weight:600;'>Question {q_idx + 1} of {len(questions)}</div>", unsafe_allow_html=True)
-            st.markdown(f"<div style='font-weight:600; font-size:15px; margin-bottom:16px;'>{q_text}</div>", unsafe_allow_html=True)
+            st.markdown(
+                f"<div style='font-size:12px; color:#7A5864; margin-bottom:10px; font-weight:600;'>"
+                f"Question {q_idx + 1} of {len(questions)}</div>",
+                unsafe_allow_html=True,
+            )
+            st.markdown(
+                f"<div style='font-weight:600; font-size:15px; margin-bottom:16px;'>{q_text}</div>",
+                unsafe_allow_html=True,
+            )
 
             for i, opt in enumerate(opts):
                 prefix = ["A", "B", "C", "D"][i]
@@ -228,14 +257,26 @@ def render_home():
         if not plan:
             st.info("Upload a document to generate a study plan.")
         else:
-            st.markdown(f"<div style='font-size:15px; font-weight:700; color:{color}; margin-bottom:4px'>Your Personalised Study Plan</div>", unsafe_allow_html=True)
-            st.markdown(f"<div style='font-size:12.5px; color:#7A5864; margin-bottom:16px;'>Check off each week as you complete it — your progress ring updates automatically.</div>", unsafe_allow_html=True)
+            st.markdown(
+                f"<div style='font-size:15px; font-weight:700; color:{color}; margin-bottom:4px'>"
+                f"Your Personalised Study Plan — {course_name}</div>",
+                unsafe_allow_html=True,
+            )
+            st.markdown(
+                "<div style='font-size:12.5px; color:#7A5864; margin-bottom:16px;'>"
+                "Check off each week as you complete it — your progress ring updates automatically.</div>",
+                unsafe_allow_html=True,
+            )
 
-            updated = False
+            updated  = False
             new_plan = []
             for i, (title, desc, done) in enumerate(plan):
                 checked = st.checkbox(title, value=done, key=f"week_check_{i}")
-                st.markdown(f"<div style='font-size:13px; color:#7A5864; margin-left:28px; margin-top:-8px; margin-bottom:14px;'>{desc}</div>", unsafe_allow_html=True)
+                st.markdown(
+                    f"<div style='font-size:13px; color:#7A5864; margin-left:28px; "
+                    f"margin-top:-8px; margin-bottom:14px;'>{desc}</div>",
+                    unsafe_allow_html=True,
+                )
                 if checked != done:
                     updated = True
                 new_plan.append((title, desc, checked))
