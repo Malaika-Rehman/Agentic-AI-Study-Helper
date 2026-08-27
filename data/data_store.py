@@ -1,14 +1,17 @@
 import streamlit as st
-from data.database import init_db
+from data.database import init_db, is_onboarding_completed
 
 
 def init_state():
     # Init DB tables on first run
     init_db()
 
+    initial_screen = "login" if is_onboarding_completed() else "onboarding"
+
     defaults = {
         # Auth
-        "screen":            "login",
+        "screen":            initial_screen,
+        "ob_step":           0,
         "user_name":         "",
         "student_id":        "",
         "user_email":        "",

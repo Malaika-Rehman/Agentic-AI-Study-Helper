@@ -1,5 +1,5 @@
 import streamlit as st
-from data.database import login_user, get_user_documents, record_login
+from data.database import login_user, get_user_documents, record_login, set_onboarding_completed
 from data.data_store import load_document_into_session
 from components.about_section import render_login_about
 
@@ -32,10 +32,12 @@ def render_auth():
             else:
                 success, result = login_user(email, password)
                 if success:
+                    set_onboarding_completed()
                     st.session_state.user_name  = result["name"]
                     st.session_state.student_id = result["student_id"]
                     st.session_state.user_email = result["email"]
                     st.session_state.screen     = "home"
+                    st.session_state.ob_step    = 0
                     st.session_state.pop("just_registered", None)
 
                     # Server-side truth about whether this is this user's

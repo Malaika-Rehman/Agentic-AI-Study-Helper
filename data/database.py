@@ -66,6 +66,11 @@ def init_db():
             created_at  TEXT    DEFAULT (datetime('now')),
             FOREIGN KEY (doc_id) REFERENCES documents(id)
         );
+
+        CREATE TABLE IF NOT EXISTS app_settings (
+            key   TEXT PRIMARY KEY,
+            value TEXT NOT NULL
+        );
         """)
         # Safe migration: adds login_count to a users table that already
         # existed before this column was introduced. Harmless no-op if
@@ -75,6 +80,33 @@ def init_db():
             conn.execute("ALTER TABLE users ADD COLUMN login_count INTEGER NOT NULL DEFAULT 0")
         except sqlite3.OperationalError:
             pass
+
+
+# ─────────────────────────────────────────────
+# APP SETTINGS & ONBOARDING STATE
+# ─────────────────────────────────────────────
+def is_onboarding_completed() -> bool:
+    """Returns True if onboarding has already been completed/seen."""
+    try:
+        with _conn() as conn:
+            row = conn.execute(
+                "SELECT value FROM app_settings WHERE key = 'onboarding_completed'"
+            ).fetchone()
+            return bool(row and row["value"] == "1")
+    except Exception:
+        return False
+
+
+def set_onboarding_completed():
+    """Mark onboarding as completed so returning users go directly to login."""
+    try:
+        with _conn() as conn:
+            conn.execute(
+                "INSERT INTO app_settings (key, value) VALUES ('onboarding_completed', '1') "
+                "ON CONFLICT(key) DO UPDATE SET value = '1'"
+            )
+    except Exception:
+        pass
 
 
 # ─────────────────────────────────────────────

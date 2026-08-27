@@ -1,6 +1,6 @@
 import re
 import streamlit as st
-from data.database import register_user
+from data.database import register_user, set_onboarding_completed
 from components.about_section import render_signup_about
 
 
@@ -124,6 +124,7 @@ def render_signup():
                 )
 
                 if success:
+                    set_onboarding_completed()
                     st.success("🎉 Account created! Please sign in.")
 
                     st.session_state.just_registered = True
