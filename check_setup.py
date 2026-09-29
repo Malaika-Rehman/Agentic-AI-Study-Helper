@@ -4,6 +4,12 @@ Run this first on any new device:
 """
 import sys, os
 
+if sys.stdout and hasattr(sys.stdout, "reconfigure"):
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 results = []
 
 def check(name, fn):
@@ -22,6 +28,8 @@ check("pypdf",         lambda: __import__("pypdf"))
 check("python-docx",   lambda: __import__("docx"))
 check("python-pptx",   lambda: __import__("pptx"))
 check("python-dotenv", lambda: __import__("dotenv"))
+check("pywebpush",     lambda: __import__("pywebpush"))
+check("cryptography",  lambda: __import__("cryptography"))
 check("lxml",          lambda: __import__("lxml"))
 check("Pillow",        lambda: __import__("PIL"))
 

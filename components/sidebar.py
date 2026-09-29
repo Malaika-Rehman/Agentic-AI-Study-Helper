@@ -29,7 +29,8 @@ def _confirm_delete_dialog(doc_id: int, filename: str):
                 display:flex; gap:8px; align-items:flex-start;'>
       <span style='font-size:14px;'>⚠️</span>
       <span>This action cannot be undone. The document, its generated summary,
-      flashcards, quiz, study plan, and chat history will be permanently removed.</span>
+      flashcards, quiz, study plan, and all chat history will be permanently removed
+      from both the database and vector search index.</span>
     </div>
     """, unsafe_allow_html=True)
 
@@ -41,18 +42,55 @@ def _confirm_delete_dialog(doc_id: int, filename: str):
     with col_delete:
         with st.container(key="danger_delete_btn"):
             if st.button("🗑  Delete Permanently", use_container_width=True, type="primary"):
+                # 1. Remove from SQLite (documents + results + chat_history rows)
                 delete_document_db(st.session_state.user_email, doc_id)
+                # 2. Remove embeddings from ChromaDB vector store
                 delete_document_vectors(st.session_state.user_email, doc_id)
+                # 3. Clear session state if it was the active document
                 if st.session_state.doc_id == doc_id:
-                    st.session_state.doc_id        = None
-                    st.session_state.doc_name      = ""
-                    st.session_state.doc_text      = ""
-                    st.session_state.doc_processed = False
-                    st.session_state.ai_summary    = ""
-                    st.session_state.ai_flashcards = []
-                    st.session_state.ai_quiz       = []
-                    st.session_state.ai_study_plan = []
-                    st.session_state.chat_messages = []
+                    st.session_state.doc_id          = None
+                    st.session_state.doc_name        = ""
+                    st.session_state.doc_text        = ""
+                    st.session_state.doc_processed   = False
+                    st.session_state.selected_course = ""
+                    st.session_state.ai_summary      = ""
+                    st.session_state.ai_flashcards   = []
+                    st.session_state.ai_quiz         = []
+                    st.session_state.ai_study_plan   = []
+                    st.session_state.chat_messages   = []
+                    st.session_state.fc_index        = 0
+                    st.session_state.fc_flipped      = False
+                    st.session_state.quiz_index      = 0
+                    st.session_state.quiz_answered   = None
+                st.rerun()
+
+
+@st.dialog("Clear Chat History")
+def _confirm_clear_chat_dialog():
+    st.markdown("""
+    <div style='font-size:14px; color:#4A3A40; line-height:1.6;'>
+      Are you sure you want to clear the entire chat history for this document?
+    </div>
+    <div style='background:#FEF2F2; border:1px solid #FECACA; border-radius:10px;
+                padding:11px 14px; margin-top:14px; font-size:12.5px; color:#991B1B;
+                display:flex; gap:8px; align-items:flex-start;'>
+      <span style='font-size:14px;'>⚠️</span>
+      <span>All messages for this document will be permanently deleted from the database.
+      This action cannot be undone.</span>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("<div style='height:18px'></div>", unsafe_allow_html=True)
+    col_cancel, col_clear = st.columns(2)
+    with col_cancel:
+        if st.button("Cancel", use_container_width=True):
+            st.rerun()
+    with col_clear:
+        with st.container(key="danger_clear_chat_btn"):
+            if st.button("🗑  Clear History", use_container_width=True, type="primary"):
+                from data.database import clear_chat_history
+                clear_chat_history(st.session_state.user_email, st.session_state.doc_id)
+                st.session_state.chat_messages = []
                 st.rerun()
 
 
@@ -146,7 +184,7 @@ def render_about_sidebar():
         st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
         _section_label("Navigation")
         if st.button("← Back", use_container_width=True):
-            st.session_state.screen = st.session_state.get("about_return_screen", "login")
+            st.session_state.screen = st.session_state.get("about_return_screen", "onboarding")
             st.rerun()
         st.markdown("<div style='height:16px'></div>", unsafe_allow_html=True)
         render_sidebar_footer()
@@ -231,8 +269,19 @@ def render_dashboard_sidebar():
         st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
         with st.container(key="sidebar_logout_wrap"):
             if st.button("Log Out", use_container_width=True):
+                from data.database import revoke_session_token
+                from components.auth_cookies import delete_session_cookie
+
+                token = st.session_state.get("session_token", "")
+                if token:
+                    revoke_session_token(token)
+                delete_session_cookie()
+
                 for key in list(st.session_state.keys()):
                     del st.session_state[key]
+
+                st.session_state.cookie_action = ("delete", None)
+                st.session_state.screen = "onboarding"
                 st.rerun()
 
 
@@ -257,7 +306,4 @@ def render_chat_sidebar():
 
         _section_label("Session")
         if st.button("🗑 Clear Chat History", use_container_width=True):
-            from data.database import clear_chat_history
-            clear_chat_history(st.session_state.user_email, st.session_state.doc_id)
-            st.session_state.chat_messages = []
-            st.rerun()
+            _confirm_clear_chat_dialog()

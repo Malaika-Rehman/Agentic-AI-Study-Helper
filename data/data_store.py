@@ -1,12 +1,19 @@
 import streamlit as st
-from data.database import init_db, is_onboarding_completed
+from data.database import (
+    init_db,
+    is_onboarding_completed,
+    validate_session_token,
+    get_user_documents,
+    update_user_activity,
+)
+from components.auth_cookies import get_session_token
 
 
 def init_state():
     # Init DB tables on first run
     init_db()
 
-    initial_screen = "login" if is_onboarding_completed() else "onboarding"
+    initial_screen = "onboarding"
 
     defaults = {
         # Auth
@@ -15,8 +22,10 @@ def init_state():
         "user_name":         "",
         "student_id":        "",
         "user_email":        "",
+        "session_token":     "",
         "is_first_login":    False,
         "sidebar_collapsed": False,
+        "cookie_action":     None,  # ("set", token) or ("delete", None)
 
         # Course — starts empty; gets set when user uploads a document
         "selected_course":   "",
@@ -47,6 +56,32 @@ def init_state():
     for k, v in defaults.items():
         if k not in st.session_state:
             st.session_state[k] = v
+
+    # ── Check for Persistent Cookie Authentication ──
+    if not st.session_state.user_email:
+        token = get_session_token()
+        if token:
+            user = validate_session_token(token)
+            if user:
+                st.session_state.user_name     = user["name"]
+                st.session_state.student_id    = user["student_id"]
+                st.session_state.user_email    = user["email"]
+                st.session_state.session_token = token
+                if st.session_state.screen in ("login", "signup", "onboarding"):
+                    st.session_state.screen = "home"
+
+                # Automatically load latest document if available
+                if not st.session_state.doc_processed:
+                    existing_docs = get_user_documents(user["email"])
+                    if existing_docs:
+                        loaded = load_document_into_session(existing_docs[0]["id"], user["email"])
+                        if loaded:
+                            st.session_state.doc_name = existing_docs[0]["filename"]
+
+                update_user_activity(user["email"])
+    elif st.session_state.user_email:
+        # Periodic activity refresh
+        update_user_activity(st.session_state.user_email)
 
 
 def clear_current_document():

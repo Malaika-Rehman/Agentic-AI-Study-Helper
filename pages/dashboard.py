@@ -11,18 +11,6 @@ def render_home():
 
     render_dashboard_sidebar()
 
-    # ── One-time welcome banner ──
-    if st.session_state.is_first_login:
-        st.markdown(f"""
-        <div style='background:#FDF4F0; border:1px solid #F3D9C4; border-radius:12px;
-                    padding:14px 18px; margin-bottom:14px; font-size:14px; color:#7A4A2A;'>
-          🎉 <b>Welcome, {st.session_state.user_name}!</b> Upload your first document below
-          to get started — the AI will automatically detect the subject and generate your
-          summary, flashcards, quiz, and study plan.
-        </div>
-        """, unsafe_allow_html=True)
-        st.session_state.is_first_login = False
-
     # ── Title Bar ──
     col_title, col_course, col_chat = st.columns([2.8, 2, 1.2])
     with col_title:
@@ -282,8 +270,9 @@ def render_home():
                 new_plan.append((title, desc, checked))
 
             if updated:
-                from data.database import update_study_plan
+                from data.database import update_study_plan, update_user_activity
                 st.session_state.ai_study_plan = new_plan
                 update_study_plan(st.session_state.doc_id, [list(p) for p in new_plan])
+                update_user_activity(st.session_state.user_email)
                 st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)

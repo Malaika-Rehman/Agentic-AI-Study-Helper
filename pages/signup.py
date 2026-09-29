@@ -146,3 +146,10 @@ def render_signup():
         ):
             st.session_state.screen = "login"
             st.rerun()
+
+        if st.button(
+            "← Back to Welcome",
+            use_container_width=True
+        ):
+            st.session_state.screen = "onboarding"
+            st.rerun()

@@ -12,8 +12,20 @@ from pages.about import render_about
 from pages.onboarding import render_onboarding
 from components.sidebar import render_auth_sidebar
 
+from components.auth_cookies import set_session_cookie, delete_session_cookie
+from components.notification_manager import render_push_notification_client
+
 # ── Init ──
 init_state()
+
+# ── Handle any pending cookie synchronization ──
+if st.session_state.get("cookie_action"):
+    action, act_token = st.session_state.cookie_action
+    if action == "set" and act_token:
+        set_session_cookie(act_token)
+    elif action == "delete":
+        delete_session_cookie()
+    st.session_state.cookie_action = None
 
 # ── Page config ──
 st.set_page_config(
@@ -33,6 +45,20 @@ st.markdown("""
 load_styles()
 
 screen = st.session_state.screen
+
+# ── Background Push Notification Client (Authenticated Screens) ──
+if screen not in ("onboarding", "login", "signup", "about") and st.session_state.get("user_email"):
+    render_push_notification_client(st.session_state.user_email)
+
+# ── First-login notification permission overlay ──
+if (screen not in ("onboarding", "login", "signup", "about")
+        and st.session_state.get("is_first_login")
+        and st.session_state.get("user_email")):
+    from components.notification_manager import render_first_login_notification_prompt
+    render_first_login_notification_prompt(
+        st.session_state.user_email,
+        st.session_state.user_name,
+    )
 
 # ── Sidebar collapse toggle (only on authenticated screens) ──
 if screen not in ("onboarding", "login", "signup", "about"):

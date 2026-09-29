@@ -33,6 +33,15 @@ def render_auth():
                 success, result = login_user(email, password)
                 if success:
                     set_onboarding_completed()
+                    
+                    # Create persistent session token in DB and set cookie
+                    from data.database import create_user_session
+                    from components.auth_cookies import set_session_cookie
+                    token = create_user_session(result["email"])
+                    st.session_state.session_token = token
+                    st.session_state.cookie_action = ("set", token)
+                    set_session_cookie(token)
+
                     st.session_state.user_name  = result["name"]
                     st.session_state.student_id = result["student_id"]
                     st.session_state.user_email = result["email"]
@@ -63,4 +72,8 @@ def render_auth():
         st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
         if st.button("New here? Create an account →", use_container_width=True):
             st.session_state.screen = "signup"
+            st.rerun()
+
+        if st.button("← Back to Welcome", use_container_width=True):
+            st.session_state.screen = "onboarding"
             st.rerun()

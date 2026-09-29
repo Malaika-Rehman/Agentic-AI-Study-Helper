@@ -397,6 +397,14 @@ div[data-testid="stForm"] { background: white !important; border: 1px solid #EAD
     background-color: #B91C1C !important;
     box-shadow: 0 3px 14px rgba(220, 38, 38, 0.35) !important;
 }
+.st-key-danger_clear_chat_btn .stButton > button[kind="primary"] {
+    background-color: #DC2626 !important;
+    border-color: #DC2626 !important;
+}
+.st-key-danger_clear_chat_btn .stButton > button[kind="primary"]:hover {
+    background-color: #B91C1C !important;
+    box-shadow: 0 3px 14px rgba(220, 38, 38, 0.35) !important;
+}
 
 /* Primary button (Sign In, Launch Chat, etc.) */
 .stButton > button[kind="primary"],

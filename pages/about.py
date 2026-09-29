@@ -29,7 +29,7 @@ def render_about():
     ):
         st.session_state.screen = st.session_state.get(
             "about_return_screen",
-            "login"
+            "onboarding"
         )
         st.rerun()
 
