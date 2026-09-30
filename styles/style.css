@@ -195,8 +195,112 @@ html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; }
     line-height: 1.6;
     box-shadow: 0 3px 12px rgba(128, 43, 69, 0.08);
 }
+/* Rendered markdown inside AI bubbles */
+.bubble-ai p { margin: 0 0 10px; }
+.bubble-ai p:last-child { margin-bottom: 0; }
+.bubble-ai ul, .bubble-ai ol { margin: 4px 0 10px 20px; padding: 0; }
+.bubble-ai li { margin-bottom: 4px; }
+.bubble-ai h1, .bubble-ai h2, .bubble-ai h3, .bubble-ai h4 {
+    font-family: 'DM Serif Display', serif;
+    color: #802B45;
+    margin: 12px 0 6px;
+    line-height: 1.3;
+}
+.bubble-ai code {
+    background: #F5ECEF;
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: 13px;
+}
+.bubble-ai pre {
+    background: #F5ECEF;
+    border-radius: 8px;
+    padding: 10px 12px;
+    overflow-x: auto;
+    margin: 6px 0 10px;
+}
+.bubble-ai pre code { background: transparent; padding: 0; }
+.bubble-ai table { border-collapse: collapse; margin: 6px 0 10px; font-size: 13.5px; }
+.bubble-ai th, .bubble-ai td { border: 1px solid #EADCE0; padding: 6px 10px; }
+.bubble-ai th { background: #FBF0F3; }
+.bubble-ai blockquote {
+    border-left: 3px solid #C9A227;
+    margin: 6px 0 10px;
+    padding-left: 12px;
+    color: #7A5864;
+}
+.bubble-user { overflow-wrap: anywhere; }
+.bubble-ai   { overflow-wrap: anywhere; }
 .msg-header      { font-size: 11px; color: #8A6070; margin-bottom: 5px; font-weight: 600; letter-spacing: .02em; }
 .msg-header-user { font-size: 11px; color: #8A6070; margin-bottom: 5px; font-weight: 600; letter-spacing: .02em; text-align: right; }
+
+/* ── Chat Screen: message list + pinned input ──
+   Messages live in st.container(key="chat_messages"). The input form
+   lives in st.container(key="chat_input_fixed") and is pinned to the
+   bottom of the viewport, to the right of the 21rem sidebar. */
+
+/* Vertical spacing between bubbles */
+.st-key-chat_messages > div {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Room so the last message isn't hidden behind the input.
+   Scoped with :has() so other pages keep their normal padding. */
+.block-container:has(.st-key-chat_messages) {
+    padding-bottom: 130px !important;
+}
+
+/* Pinned input strip */
+.st-key-chat_input_fixed {
+    position: fixed !important;
+    bottom: 0;
+    left: 21rem;
+    right: auto !important;
+    /* Streamlit sets width:100% on containers, which pushed the strip
+       off-screen once we offset it by the sidebar. Size it explicitly. */
+    width: calc(100vw - 21rem - 16px) !important;
+    max-width: none !important;
+    box-sizing: border-box !important;
+    z-index: 999;
+    padding: 28px 40px 18px;
+    background: linear-gradient(to top, #FAF6F7 65%, rgba(250, 246, 247, 0));
+    pointer-events: none; /* only the form itself is clickable */
+}
+.st-key-chat_input_fixed > div {
+    max-width: 820px;
+    width: 100%;
+    margin: 0 auto;
+    pointer-events: auto;
+}
+
+/* Sidebar hidden/collapsed -> use the full width */
+.stApp:not(:has([data-testid="stSidebar"])) .st-key-chat_input_fixed {
+    left: 0;
+    width: calc(100vw - 16px) !important;
+}
+
+/* Form card */
+.st-key-chat_input_fixed div[data-testid="stForm"] {
+    box-shadow: 0 6px 25px rgba(128, 43, 69, 0.14) !important;
+    border-radius: 18px !important;
+    padding: 10px 12px !important;
+}
+/* Maroon focus ring instead of Streamlit's default red */
+.st-key-chat_input_fixed input:focus {
+    border-color: #802B45 !important;
+    box-shadow: 0 0 0 1px #802B45 !important;
+}
+
+/* Small screens: full width, no sidebar offset */
+@media (max-width: 900px) {
+    .st-key-chat_input_fixed {
+        left: 0;
+        width: calc(100vw - 16px) !important;
+        padding: 20px 12px 12px;
+    }
+}
 
 .prog-bg   { background: #F3ECEF; border-radius: 100px; height: 6px; margin-top: 12px; overflow: hidden; }
 .prog-fill { height: 6px; border-radius: 100px; }

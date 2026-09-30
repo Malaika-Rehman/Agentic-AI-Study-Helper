@@ -1,10 +1,45 @@
 import os
 import json
 import re
+
 from dotenv import load_dotenv
 from groq import Groq
 
-load_dotenv()
+
+# ─────────────────────────────────────────────────────────────────────────────
+# PROJECT / ENVIRONMENT CONFIGURATION
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ai_agents.py is inside:
+#     Agentic AI Study Helper/data/ai_agents.py
+#
+# Therefore, going two levels appropriately resolves the project root:
+#     Agentic AI Study Helper/
+#
+# The .env file should be located directly in the project root.
+
+PROJECT_ROOT = os.path.abspath(
+    os.path.join(
+        os.path.dirname(__file__),
+        ".."
+    )
+)
+
+ENV_FILE = os.path.join(
+    PROJECT_ROOT,
+    ".env"
+)
+
+# Explicitly load the project's .env file.
+load_dotenv(
+    dotenv_path=ENV_FILE,
+    override=False
+)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# GROQ MODELS
+# ─────────────────────────────────────────────────────────────────────────────
 
 DEFAULT_CANDIDATES = [
     "groq/compound-mini",
@@ -19,24 +54,27 @@ DEFAULT_CANDIDATES = [
 
 _ACTIVE_MODEL = None
 
+
 # ─────────────────────────────────────────────────────────────────────────────
-# Keyword map for fast offline fallback.
-# Covers Pakistani university subjects + international subjects.
-# Key = lowercase keyword found in text/filename → Value = clean subject name.
+# SUBJECT KEYWORD MAP
 # ─────────────────────────────────────────────────────────────────────────────
+
 _SUBJECT_KEYWORDS: dict[str, str] = {
+
     # Pakistan / Social Sciences
     "pakistan stud":        "Pakistan Studies",
     "pak stud":             "Pakistan Studies",
     "quaid-e-azam":         "Pakistan Studies",
     "jinnah":               "Pakistan Studies",
+
     "islamic stud":         "Islamic Studies",
     "islamiat":             "Islamic Studies",
     "quran":                "Islamic Studies",
     "hadith":               "Islamic Studies",
     "fiqh":                 "Islamic Studies",
+
     "urdu":                 "Urdu",
-    "ادو":                  "Urdu",   # Arabic/Urdu script hint
+    "ادو":                  "Urdu",
 
     # Sciences
     "organic chemistry":    "Organic Chemistry",
@@ -47,17 +85,19 @@ _SUBJECT_KEYWORDS: dict[str, str] = {
     "biology":              "Biology",
     "botany":               "Botany",
     "zoology":              "Zoology",
-    "microbiology":         "Microbiology",
+    "microbiology":          "Microbiology",
     "genetics":             "Genetics",
     "anatomy":              "Anatomy",
     "physiology":           "Physiology",
     "pharmacology":         "Pharmacology",
     "pathology":            "Pathology",
+
     "physics":              "Physics",
     "thermodynamics":       "Physics – Thermodynamics",
     "quantum mechanic":     "Physics – Quantum Mechanics",
     "electromagnetism":     "Physics – Electromagnetism",
     "optics":               "Physics – Optics",
+
     "calculus":             "Mathematics – Calculus",
     "linear algebra":       "Mathematics – Linear Algebra",
     "discrete math":        "Discrete Mathematics",
@@ -74,6 +114,7 @@ _SUBJECT_KEYWORDS: dict[str, str] = {
     "natural language":        "Natural Language Processing",
     "computer vision":         "Computer Vision",
     "cloud computing":         "Cloud Computing",
+
     "data structure":          "Data Structures",
     "algorithm":               "Design & Analysis of Algorithms",
     "operating system":        "Operating Systems",
@@ -146,92 +187,258 @@ _SUBJECT_KEYWORDS: dict[str, str] = {
 }
 
 
-def get_api_key() -> str:
-    key = os.getenv("GROQ_API_KEY", "").strip()
-    if not key:
-        try:
-            import streamlit as st
-            if "GROQ_API_KEY" in st.secrets:
-                key = str(st.secrets["GROQ_API_KEY"]).strip()
-        except Exception:
-            pass
-    return key
+# ─────────────────────────────────────────────────────────────────────────────
+# GROQ API KEY
+# ─────────────────────────────────────────────────────────────────────────────
 
+def get_api_key() -> str:
+    """
+    Get the Groq API key.
+
+    Priority:
+    1. Environment variable loaded from project-root .env
+    2. Streamlit secrets
+
+    The actual API key is never printed.
+    """
+
+    # First attempt: environment variable
+    key = os.getenv(
+        "GROQ_API_KEY",
+        ""
+    ).strip()
+
+    if key:
+        return key
+
+    # Second attempt: explicitly reload the project .env
+    try:
+        load_dotenv(
+            dotenv_path=ENV_FILE,
+            override=False
+        )
+
+        key = os.getenv(
+            "GROQ_API_KEY",
+            ""
+        ).strip()
+
+        if key:
+            return key
+
+    except Exception as e:
+        print(
+            f"[Groq] Could not load .env file: {e}"
+        )
+
+    # Third attempt: Streamlit secrets
+    try:
+        import streamlit as st
+
+        if "GROQ_API_KEY" in st.secrets:
+
+            key = str(
+                st.secrets["GROQ_API_KEY"]
+            ).strip()
+
+            if key:
+                return key
+
+    except Exception:
+        pass
+
+    return ""
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# GROQ CLIENT
+# ─────────────────────────────────────────────────────────────────────────────
 
 def get_client():
+    """
+    Create and return the Groq client.
+    """
+
     api_key = get_api_key()
+
     if not api_key:
         raise ValueError(
-            "GROQ_API_KEY not found. Please add it to your .env file or Streamlit secrets."
+            "GROQ_API_KEY not found. "
+            f"Expected it in: {ENV_FILE} "
+            "or Streamlit secrets."
         )
-    return Groq(api_key=api_key)
 
+    return Groq(
+        api_key=api_key
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# GROQ MODEL CONFIGURATION
+# ─────────────────────────────────────────────────────────────────────────────
 
 def get_configured_model() -> str:
+
     global _ACTIVE_MODEL
+
     if _ACTIVE_MODEL:
         return _ACTIVE_MODEL
-    env_model = os.getenv("GROQ_MODEL", "").strip()
+
+    env_model = os.getenv(
+        "GROQ_MODEL",
+        ""
+    ).strip()
+
     if not env_model:
+
         try:
+
             import streamlit as st
+
             if "GROQ_MODEL" in st.secrets:
-                env_model = str(st.secrets["GROQ_MODEL"]).strip()
+
+                env_model = str(
+                    st.secrets["GROQ_MODEL"]
+                ).strip()
+
         except Exception:
             pass
+
     if env_model:
+
         _ACTIVE_MODEL = env_model
+
         return _ACTIVE_MODEL
+
     return DEFAULT_CANDIDATES[0]
 
 
-def _call(system_prompt: str, user_prompt: str, max_tokens: int = 2000) -> str:
+# ─────────────────────────────────────────────────────────────────────────────
+# COMMON GROQ CALL
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _call(
+    system_prompt: str,
+    user_prompt: str,
+    max_tokens: int = 2000
+) -> str:
+
     global _ACTIVE_MODEL
+
     client = get_client()
+
     current_model = get_configured_model()
-    candidate_list = [current_model] + [m for m in DEFAULT_CANDIDATES if m != current_model]
+
+    candidate_list = [
+        current_model
+    ] + [
+        model
+        for model in DEFAULT_CANDIDATES
+        if model != current_model
+    ]
+
     last_err = None
+
     for model_name in candidate_list:
+
         try:
+
             response = client.chat.completions.create(
                 model=model_name,
                 messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user",   "content": user_prompt},
+                    {
+                        "role": "system",
+                        "content": system_prompt
+                    },
+                    {
+                        "role": "user",
+                        "content": user_prompt
+                    },
                 ],
                 max_tokens=max_tokens,
                 temperature=0.3,
             )
+
             _ACTIVE_MODEL = model_name
-            content = response.choices[0].message.content or ""
-            cleaned = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL).strip()
-            return cleaned if cleaned else content.strip()
+
+            content = (
+                response.choices[0].message.content
+                or ""
+            )
+
+            cleaned = re.sub(
+                r"<think>.*?</think>",
+                "",
+                content,
+                flags=re.DOTALL
+            ).strip()
+
+            return (
+                cleaned
+                if cleaned
+                else content.strip()
+            )
+
         except Exception as e:
+
             last_err = e
+
             continue
-    raise last_err or RuntimeError("Failed to get response from Groq API.")
+
+    raise (
+        last_err
+        or RuntimeError(
+            "Failed to get response from Groq API."
+        )
+    )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# HELPER — clean a filename into a readable subject hint
+# FILENAME HELPER
 # ─────────────────────────────────────────────────────────────────────────────
+
 def _parse_filename(filename: str) -> str:
-    """
-    Turn a filename into a readable subject hint.
-    Examples:
-      "Pakistan_Studies_Chapter3.pdf" → "Pakistan Studies Chapter3"
-      "CS301-DataStructures.pdf"      → "CS301 DataStructures"
-      "notes.pdf"                     → ""   (too generic, ignore)
-    """
-    name = os.path.splitext(filename)[0]
-    name = re.sub(r"[_\-]+", " ", name).strip()
 
-    # If it's a single very generic word, don't use it
-    generic = {"notes", "document", "file", "doc", "pdf", "slides",
-               "lecture", "lec", "chapter", "ch", "unit", "book",
-               "assignment", "homework", "exam", "test", "quiz", "final", "mid"}
+    name = os.path.splitext(
+        filename
+    )[0]
+
+    name = re.sub(
+        r"[_\-]+",
+        " ",
+        name
+    ).strip()
+
+    generic = {
+        "notes",
+        "document",
+        "file",
+        "doc",
+        "pdf",
+        "slides",
+        "lecture",
+        "lec",
+        "chapter",
+        "ch",
+        "unit",
+        "book",
+        "assignment",
+        "homework",
+        "exam",
+        "test",
+        "quiz",
+        "final",
+        "mid"
+    }
+
     words = name.lower().split()
-    meaningful_words = [w for w in words if w not in generic and len(w) > 1]
+
+    meaningful_words = [
+        word
+        for word in words
+        if word not in generic
+        and len(word) > 1
+    ]
 
     if not meaningful_words:
         return ""
@@ -240,71 +447,123 @@ def _parse_filename(filename: str) -> str:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# HELPER — keyword scan (offline, instant, no API cost)
+# KEYWORD SUBJECT DETECTION
 # ─────────────────────────────────────────────────────────────────────────────
-def _keyword_detect(text: str, filename: str = "") -> str:
-    """
-    Scan filename + first 3000 chars of text for known subject keywords.
-    Returns a clean subject name if found, else empty string.
-    """
-    haystack = (filename + " " + text[:3000]).lower()
-    # Sort by keyword length descending so longer/more specific keys match first
-    for kw in sorted(_SUBJECT_KEYWORDS.keys(), key=len, reverse=True):
-        if kw in haystack:
-            return _SUBJECT_KEYWORDS[kw]
+
+def _keyword_detect(
+    text: str,
+    filename: str = ""
+) -> str:
+
+    haystack = (
+        filename
+        + " "
+        + text[:3000]
+    ).lower()
+
+    for keyword in sorted(
+        _SUBJECT_KEYWORDS.keys(),
+        key=len,
+        reverse=True
+    ):
+
+        if keyword in haystack:
+
+            return _SUBJECT_KEYWORDS[
+                keyword
+            ]
+
     return ""
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# AGENT 1 — CONTROLLER: Detect Subject (truly open, any subject)
+# AGENT 1 — CONTROLLER
 # ─────────────────────────────────────────────────────────────────────────────
-def detect_subject(text: str, filename: str = "") -> str:
-    """
-    Multi-layer subject detection — works for ANY subject, any language.
 
-    Layer 1: Filename parsing        (free, instant)
-    Layer 2: Keyword scan            (free, instant, covers 70+ subjects)
-    Layer 3: LLM open-ended extract  (accurate, uses Groq API)
-    Layer 4: Filename fallback        (if LLM fails)
-    Layer 5: "General Study Material" (last resort — never a wrong CS course)
+def detect_subject(
+    text: str,
+    filename: str = ""
+) -> str:
 
-    NOTE: There are NO hardcoded target courses. The function returns
-    whatever subject the document actually is about.
-    """
+    filename_hint = _parse_filename(
+        filename
+    )
 
-    filename_hint = _parse_filename(filename)
+    # Layer 1 — keyword detection
+    keyword_result = _keyword_detect(
+        text,
+        filename
+    )
 
-    # ── Layer 2: Keyword scan ────────────────────────────────────────────────
-    keyword_result = _keyword_detect(text, filename)
     if keyword_result:
-        # Still verify with LLM if we have text, to get the precise name
+
+        # Try LLM refinement
         try:
-            refined = _llm_detect(text, filename_hint or keyword_result)
-            if refined and refined.lower() != "unknown":
+
+            refined = _llm_detect(
+                text,
+                filename_hint or keyword_result
+            )
+
+            if (
+                refined
+                and refined.lower() != "unknown"
+            ):
+
                 return refined
+
         except Exception:
             pass
+
         return keyword_result
 
-    # ── Layer 3: LLM open-ended detection ───────────────────────────────────
+    # Layer 2 — LLM detection
     try:
-        result = _llm_detect(text, filename_hint)
-        if result and result.lower() not in ("unknown", "general", ""):
+
+        result = _llm_detect(
+            text,
+            filename_hint
+        )
+
+        if (
+            result
+            and result.lower()
+            not in (
+                "unknown",
+                "general",
+                ""
+            )
+        ):
+
             return result
+
     except Exception:
         pass
 
-    # ── Layer 4: Filename fallback ───────────────────────────────────────────
+    # Layer 3 — filename fallback
     if filename_hint:
+
         return filename_hint
 
-    # ── Layer 5: Last resort ─────────────────────────────────────────────────
+    # Layer 4 — final fallback
     return "General Study Material"
 
 
-def _llm_detect(text: str, hint: str = "") -> str:
-    """Ask the LLM to identify the subject. Completely open-ended — no list."""
-    hint_line = f'The filename suggests: "{hint}". Use this as a strong hint.\n' if hint else ""
+# ─────────────────────────────────────────────────────────────────────────────
+# LLM SUBJECT DETECTION
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _llm_detect(
+    text: str,
+    hint: str = ""
+) -> str:
+
+    hint_line = (
+        f'The filename suggests: "{hint}". '
+        "Use this as a strong hint.\n"
+        if hint
+        else ""
+    )
 
     system = """You are an expert academic subject identifier.
 
@@ -320,22 +579,39 @@ IMPORTANT RULES:
 - If truly uncertain, return your best guess — never return "Unknown"."""
 
     user = f"""{hint_line}Identify the subject of this document.
+
 Here are the first 2500 characters:
 
 {text[:2500]}
 
 Reply with ONLY the subject name:"""
 
-    result = _call(system, user, max_tokens=25).strip()
-    # Strip quotes/punctuation the model might add
-    result = re.sub(r'^["\']|["\']$', "", result).strip(" .,:")
+    result = _call(
+        system,
+        user,
+        max_tokens=25
+    ).strip()
+
+    result = re.sub(
+        r'^[\"\']|[\"\']$',
+        "",
+        result
+    ).strip(
+        " .,:"
+    )
+
     return result
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # AGENT 2 — SUMMARY
 # ─────────────────────────────────────────────────────────────────────────────
-def generate_summary(text: str, course: str) -> str:
+
+def generate_summary(
+    text: str,
+    course: str
+) -> str:
+
     system = f"""You are an expert academic summarizer helping a university student
 studying {course}. Create a clear, structured summary with these exact sections:
 
@@ -348,7 +624,11 @@ Base everything strictly on the provided document content."""
 
     return _call(
         system,
-        f"Course: {course}\n\nDocument:\n{text[:6000]}\n\nGenerate a structured summary.",
+        (
+            f"Course: {course}\n\n"
+            f"Document:\n{text[:6000]}\n\n"
+            "Generate a structured summary."
+        ),
         1500,
     )
 
@@ -356,105 +636,260 @@ Base everything strictly on the provided document content."""
 # ─────────────────────────────────────────────────────────────────────────────
 # AGENT 3 — FLASHCARDS
 # ─────────────────────────────────────────────────────────────────────────────
-def generate_flashcards(text: str, course: str) -> list[tuple[str, str]]:
+
+def generate_flashcards(
+    text: str,
+    course: str
+) -> list[tuple[str, str]]:
+
     system = f"""You are a flashcard generation expert for {course}.
 Create exactly 8 flashcards based strictly on the provided document.
 Cover the most important concepts, definitions, and facts.
+
 Respond with VALID JSON ONLY — no markdown fences, no explanation:
+
 [{{"question": "...", "answer": "..."}}, ...]"""
 
     raw = _call(
         system,
-        f"Course: {course}\n\nDocument:\n{text[:6000]}\n\nGenerate 8 flashcards as JSON.",
+        (
+            f"Course: {course}\n\n"
+            f"Document:\n{text[:6000]}\n\n"
+            "Generate 8 flashcards as JSON."
+        ),
         2000,
     )
+
     try:
-        cards = json.loads(re.sub(r"```json|```", "", raw).strip())
-        result = [(c["question"], c["answer"]) for c in cards
-                  if "question" in c and "answer" in c]
+
+        cards = json.loads(
+            re.sub(
+                r"```json|```",
+                "",
+                raw
+            ).strip()
+        )
+
+        result = [
+            (
+                card["question"],
+                card["answer"]
+            )
+            for card in cards
+            if (
+                "question" in card
+                and "answer" in card
+            )
+        ]
+
         if result:
             return result
+
     except Exception:
         pass
-    return [("Could not generate flashcards.", "Please try re-uploading the document.")]
+
+    return [
+        (
+            "Could not generate flashcards.",
+            "Please try re-uploading the document."
+        )
+    ]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # AGENT 4 — QUIZ
 # ─────────────────────────────────────────────────────────────────────────────
-def generate_quiz(text: str, course: str) -> list[tuple[str, list[str], int]]:
+
+def generate_quiz(
+    text: str,
+    course: str
+) -> list[tuple[str, list[str], int]]:
+
     system = f"""You are a quiz generation expert for {course}.
 Create exactly 5 multiple-choice questions (MCQs) based strictly on the document.
+
 Respond with VALID JSON ONLY — no markdown fences, no explanation:
+
 [{{"question": "...", "options": ["A...", "B...", "C...", "D..."], "correct": 0}}, ...]
+
 "correct" is the 0-based index of the correct answer."""
 
     raw = _call(
         system,
-        f"Course: {course}\n\nDocument:\n{text[:6000]}\n\nGenerate 5 MCQs as JSON.",
+        (
+            f"Course: {course}\n\n"
+            f"Document:\n{text[:6000]}\n\n"
+            "Generate 5 MCQs as JSON."
+        ),
         2000,
     )
+
     try:
-        questions = json.loads(re.sub(r"```json|```", "", raw).strip())
+
+        questions = json.loads(
+            re.sub(
+                r"```json|```",
+                "",
+                raw
+            ).strip()
+        )
+
         result = [
-            (q["question"], q["options"], int(q["correct"]))
-            for q in questions
-            if "question" in q and "options" in q and "correct" in q
+            (
+                question["question"],
+                question["options"],
+                int(question["correct"])
+            )
+            for question in questions
+            if (
+                "question" in question
+                and "options" in question
+                and "correct" in question
+            )
         ]
+
         if result:
             return result
+
     except Exception:
         pass
-    return [("Could not generate quiz questions.", ["Try again", "Re-upload", "Check format", "Contact support"], 0)]
+
+    return [
+        (
+            "Could not generate quiz questions.",
+            [
+                "Try again",
+                "Re-upload",
+                "Check format",
+                "Contact support"
+            ],
+            0
+        )
+    ]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # AGENT 5 — STUDY PLANNER
 # ─────────────────────────────────────────────────────────────────────────────
-def generate_study_plan(text: str, course: str) -> list[tuple[str, str, bool]]:
+
+def generate_study_plan(
+    text: str,
+    course: str
+) -> list[tuple[str, str, bool]]:
+
     system = f"""You are an academic study planner for {course}.
 Create a practical 4-week study plan based on the actual topics in the document.
 Each week should build on the previous one.
+
 Respond with VALID JSON ONLY — no markdown fences, no explanation:
+
 [{{"week": "Week 1 – Topic Title", "description": "What to study and how.", "completed": false}}, ...]
+
 Generate exactly 4 weeks."""
 
     raw = _call(
         system,
-        f"Course: {course}\n\nDocument:\n{text[:5000]}\n\nGenerate a 4-week study plan as JSON.",
+        (
+            f"Course: {course}\n\n"
+            f"Document:\n{text[:5000]}\n\n"
+            "Generate a 4-week study plan as JSON."
+        ),
         1500,
     )
+
     try:
-        plan = json.loads(re.sub(r"```json|```", "", raw).strip())
-        result = [(p["week"], p["description"], bool(p.get("completed", False))) for p in plan]
+
+        plan = json.loads(
+            re.sub(
+                r"```json|```",
+                "",
+                raw
+            ).strip()
+        )
+
+        result = [
+            (
+                item["week"],
+                item["description"],
+                bool(
+                    item.get(
+                        "completed",
+                        False
+                    )
+                )
+            )
+            for item in plan
+        ]
+
         if result:
             return result
+
     except Exception:
         pass
+
     return [
-        ("Week 1 – Foundations",   "Review core concepts and key definitions from the document.", False),
-        ("Week 2 – Deep Dive",     "Study each major topic in depth with examples and notes.",    False),
-        ("Week 3 – Practice",      "Complete all flashcards and quiz questions multiple times.",   False),
-        ("Week 4 – Final Revision","Full revision, timed self-assessment, and weak-area review.",  False),
+        (
+            "Week 1 – Foundations",
+            "Review core concepts and key definitions from the document.",
+            False
+        ),
+        (
+            "Week 2 – Deep Dive",
+            "Study each major topic in depth with examples and notes.",
+            False
+        ),
+        (
+            "Week 3 – Practice",
+            "Complete all flashcards and quiz questions multiple times.",
+            False
+        ),
+        (
+            "Week 4 – Final Revision",
+            "Full revision, timed self-assessment, and weak-area review.",
+            False
+        ),
     ]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# CHAT AGENT — RAG + General Fallback
+# CHAT AGENT — RAG + GENERAL FALLBACK
 # ─────────────────────────────────────────────────────────────────────────────
-def answer_question(question: str, doc_context: str, course: str) -> str:
+
+def answer_question(
+    question: str,
+    doc_context: str,
+    course: str
+) -> str:
+
     if doc_context.strip():
+
         system = f"""You are an intelligent study assistant for {course} at SBBWU.
 Answer the student's question using the provided document context.
+
 If the answer is not in the context, use your general knowledge but say:
 "This isn't directly in your document, but generally..."
+
 Be clear, accurate, concise, and educational."""
-        user = f"Document context:\n{doc_context}\n\nStudent question: {question}"
+
+        user = (
+            f"Document context:\n"
+            f"{doc_context}\n\n"
+            f"Student question: {question}"
+        )
+
     else:
+
         system = f"""You are an intelligent study assistant for {course} at SBBWU.
 No document is loaded. Answer using your general knowledge.
+
 Tell the student to upload a document for document-specific answers.
+
 Be clear, accurate, and educational."""
+
         user = question
 
-    return _call(system, user, max_tokens=800)
+    return _call(
+        system,
+        user,
+        max_tokens=800
+    )
