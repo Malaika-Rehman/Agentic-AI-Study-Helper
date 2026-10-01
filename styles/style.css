@@ -1,118 +1,291 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap');
 
-html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; }
 
-/* ── App Background ── */
-.stApp {
-    background-color: #FAF6F7;
-    background-attachment: fixed;
-    background-size: cover;
+/* =========================================================
+   GLOBAL / LIGHT THEME
+   ========================================================= */
+
+:root {
+    color-scheme: light;
+    --maroon: #802B45;
+    --maroon-dark: #6B2339;
+    --maroon-deep: #5A1C2F;
+
+    --gold: #C9A227;
+    --gold-light: #D9B54A;
+
+    --page-bg: #FAF6F7;
+    --sidebar-bg: #FBF7F5;
+    --card-bg: #FFFFFF;
+    --cream-bg: #FFFDF5;
+
+    --text-main: #1A0A0F;
+    --text-body: #4A3A40;
+    --text-muted: #7A5864;
+    --text-light: #9E828D;
+
+    --border: #EADCE0;
+    --border-light: #EFE2E6;
+
+    --success: #22C55E;
+    --danger: #DC2626;
 }
 
-/* Remove default Streamlit top padding and header space */
+
+/* Force the Streamlit page itself to remain light */
+
+html {
+    color-scheme: light !important;
+    background: #FAF6F7 !important;
+}
+
+body {
+    color-scheme: light !important;
+    background: #FAF6F7 !important;
+    font-family: 'DM Sans', sans-serif !important;
+}
+
+.stApp {
+    background-color: #FAF6F7 !important;
+    color: #1A0A0F !important;
+    color-scheme: light !important;
+}
+
+
+/* Main Streamlit application container */
+
+[data-testid="stAppViewContainer"] {
+    background-color: #FAF6F7 !important;
+    color: #1A0A0F !important;
+}
+
+[data-testid="stMain"] {
+    background-color: #FAF6F7 !important;
+    color: #1A0A0F !important;
+}
+
+
+/* Main content text */
+
+[data-testid="stAppViewContainer"] p,
+[data-testid="stAppViewContainer"] li,
+[data-testid="stAppViewContainer"] label {
+    color: #1A0A0F;
+}
+
+
+/* =========================================================
+   STREAMLIT HEADER / TOOLBAR
+   ========================================================= */
+
 [data-testid="stHeader"] {
     background: transparent !important;
     box-shadow: none !important;
 }
+
 [data-testid="stToolbar"],
 [data-testid="stDecoration"] {
     visibility: hidden !important;
 }
+
+
+/* =========================================================
+   MAIN CONTAINER
+   ========================================================= */
 
 .block-container {
     padding-top: 1.5rem !important;
     padding-bottom: 1.5rem !important;
 }
 
-/* ── Auth Card (centered login / signup) ── */
+
+/* =========================================================
+   AUTH CARD
+   ========================================================= */
+
 .auth-card {
     text-align: center;
     padding: 32px 8px 24px;
 }
+
 .auth-card-logo {
     font-size: 42px;
     margin-bottom: 10px;
     display: block;
-    filter: drop-shadow(0 4px 12px rgba(128,43,69,0.18));
+    filter: drop-shadow(0 4px 12px rgba(128, 43, 69, 0.18));
 }
+
 .auth-card-title {
     font-family: 'DM Serif Display', serif;
     font-size: 22px;
-    color: #802B45;
+    color: #802B45 !important;
     letter-spacing: 0.01em;
     margin-bottom: 6px;
 }
+
 .auth-card-sub {
     font-size: 13px;
-    color: #9E828D;
+    color: #9E828D !important;
     margin-bottom: 20px;
 }
 
-/* ── Auth Left Panel (login / signup marketing panel) ── */
+
+/* =========================================================
+   AUTH LEFT PANEL
+   ========================================================= */
+
 .auth-left {
-    background: #802B45;
+    background: #802B45 !important;
     border-radius: 20px;
     padding: 45px 40px;
     height: 100%;
 }
 
-/* ── App Topbar (sits above the login/signup columns, outside the panel) ── */
+.auth-left h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 38px;
+    color: #FFFFFF !important;
+    line-height: 1.2;
+    margin-bottom: 16px;
+}
+
+.auth-left p {
+    color: rgba(255, 255, 255, 0.8) !important;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.auth-badge {
+    display: inline-flex;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 100px;
+    padding: 6px 14px;
+    font-size: 12px;
+    color: #FFFFFF !important;
+    margin-bottom: 30px;
+    font-weight: 500;
+}
+
+.auth-feature {
+    display: flex;
+    align-items: start;
+    gap: 14px;
+    margin-top: 24px;
+}
+
+.auth-feature-title {
+    color: #FFFFFF !important;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.auth-feature-sub {
+    color: rgba(255, 255, 255, 0.55) !important;
+    font-size: 12px;
+    margin-top: 2px;
+}
+
+
+/* =========================================================
+   APP TOPBAR
+   ========================================================= */
+
 .app-topbar {
     display: flex;
     align-items: center;
     gap: 10px;
     padding: 4px 4px 22px;
 }
+
 .app-topbar .logo {
     font-size: 24px;
-    filter: drop-shadow(0 2px 6px rgba(128,43,69,0.18));
+    filter: drop-shadow(0 2px 6px rgba(128, 43, 69, 0.18));
 }
+
 .app-topbar .name {
     font-family: 'DM Serif Display', serif;
     font-size: 20px;
-    color: #802B45;
+    color: #802B45 !important;
     letter-spacing: 0.01em;
 }
-.auth-left h1 {
-    font-family: 'DM Serif Display', serif;
-    font-size: 38px;
-    color: white;
-    line-height: 1.2;
-    margin-bottom: 16px;
-}
-.auth-left p { color: rgba(255,255,255,0.8); font-size: 14px; line-height: 1.6; }
-.auth-badge {
-    display: inline-flex;
-    background: rgba(255,255,255,0.12);
-    border: 1px solid rgba(255,255,255,0.2);
-    border-radius: 100px;
-    padding: 6px 14px;
-    font-size: 12px;
-    color: white;
-    margin-bottom: 30px;
-    font-weight: 500;
-}
-.auth-feature { display: flex; align-items: start; gap: 14px; margin-top: 24px; }
-.auth-feature-title { color: white; font-weight: 600; font-size: 14px; }
-.auth-feature-sub { color: rgba(255,255,255,0.55); font-size: 12px; margin-top: 2px; }
 
-/* ── Dashboard Empty-State Upload Card ──
-   Real st.container(border=True, key="dash_upload_container") — one true
-   box holding both the copy and the uploader, not two stitched elements. */
+
+/* =========================================================
+   DASHBOARD EMPTY-STATE UPLOAD CARD
+   ========================================================= */
+
 .st-key-dash_upload_container > div {
     border: 2px dashed #EADCE0 !important;
     border-radius: 16px !important;
-    background: white !important;
+    background: #FFFFFF !important;
     padding: 8px 16px !important;
 }
-.st-key-dash_upload_container div[data-testid="stFileUploaderDropzone"] {
+
+
+/* File uploader */
+
+.st-key-dash_upload_container
+div[data-testid="stFileUploaderDropzone"] {
     border: 1.5px dashed #D9B54A !important;
     border-radius: 10px !important;
     background: #FFFDF5 !important;
 }
-/* ── Dashboard Components ── */
+
+.st-key-dash_upload_container
+div[data-testid="stFileUploaderDropzone"] * {
+    color: #4A3A40 !important;
+}
+
+
+/* =========================================================
+   DASHBOARD TITLES
+   ========================================================= */
+
+.section-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 26px;
+    color: #1A0A0F !important;
+}
+
+.muted {
+    font-size: 14px;
+    color: #7A5864 !important;
+}
+
+
+/* =========================================================
+   AGENT STATUS BANNER
+   ========================================================= */
+
+/*
+   Native Streamlit container:
+   st.container(border=True, key="agent_status_container")
+*/
+
+.st-key-agent_status_container {
+    background: #FFFFFF !important;
+    border: 1px solid #EADCE0 !important;
+    border-radius: 16px !important;
+    padding: 18px 22px !important;
+    margin-bottom: 24px !important;
+    box-shadow: 0 2px 12px rgba(128, 43, 69, 0.02);
+}
+
+
+/* Agent banner text */
+
+.st-key-agent_status_container p {
+    color: #1A0A0F !important;
+}
+
+
+/* =========================================================
+   AGENT BANNER
+   ========================================================= */
+
 .agent-banner {
-    background: white;
+    background: #FFFFFF;
     border: 1px solid #EADCE0;
     border-radius: 16px;
     padding: 20px 24px;
@@ -122,43 +295,110 @@ html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; }
     margin-bottom: 24px;
     box-shadow: 0 2px 12px rgba(128, 43, 69, 0.02);
 }
-.banner-left { display: flex; align-items: center; gap: 16px; }
+
+.banner-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
 .pulse-dot {
     width: 10px;
     height: 10px;
     border-radius: 50%;
     background: #22C55E;
-    box-shadow: 0 0 0 4px rgba(34,197,94,0.2);
+    box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.2);
     animation: pulseAnim 2s infinite;
 }
+
 @keyframes pulseAnim {
-    0%   { box-shadow: 0 0 0 0   rgba(34,197,94,0.4); }
-    70%  { box-shadow: 0 0 0 8px rgba(34,197,94,0); }
-    100% { box-shadow: 0 0 0 0   rgba(34,197,94,0); }
+    0% {
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4);
+    }
+
+    70% {
+        box-shadow: 0 0 0 8px rgba(34, 197, 94, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+    }
 }
 
-/* ── Metrics Grid ── */
+
+/* =========================================================
+   METRIC / STAT CARDS
+   ========================================================= */
+
 .stat-card {
-    background: white;
-    border: 1px solid #EADCE0;
+    background: #FFFFFF !important;
+    border: 1px solid #EADCE0 !important;
     border-radius: 16px;
     padding: 22px;
     text-align: left;
     box-shadow: 0 2px 12px rgba(128, 43, 69, 0.02);
 }
-.stat-val { font-family: 'DM Serif Display', serif; font-size: 34px; color: #802B45; line-height: 1.1; }
-.stat-lbl { font-size: 13px; color: #7A5864; margin-top: 6px; font-weight: 500; }
 
-/* ── Custom Cards & Content ── */
+.stat-val {
+    font-family: 'DM Serif Display', serif;
+    font-size: 34px;
+    color: #802B45 !important;
+    line-height: 1.1;
+}
+
+.stat-lbl {
+    font-size: 13px;
+    color: #7A5864 !important;
+    margin-top: 6px;
+    font-weight: 500;
+}
+
+.prog-bg {
+    background: #F3ECEF !important;
+    border-radius: 100px;
+    height: 6px;
+    margin-top: 12px;
+    overflow: hidden;
+}
+
+.prog-fill {
+    height: 6px;
+    border-radius: 100px;
+}
+
+
+/* Native stat containers */
+
+.st-key-stat_flashcards,
+.st-key-stat_quiz_questions,
+.st-key-stat_study_progress {
+    background: #FFFFFF !important;
+    border: 1px solid #EADCE0 !important;
+    border-radius: 16px !important;
+    padding: 18px !important;
+    box-shadow: 0 2px 12px rgba(128, 43, 69, 0.02);
+}
+
+
+/* =========================================================
+   CONTENT CARDS
+   ========================================================= */
+
 .content-card {
-    background: white;
+    background: #FFFFFF !important;
     border: 1px solid #EADCE0;
     border-radius: 16px;
     padding: 24px;
     margin-bottom: 16px;
 }
+
+
+/* =========================================================
+   FLASHCARDS
+   ========================================================= */
+
 .flashcard {
-    background: #802B45;
+    background: #802B45 !important;
     border-radius: 16px;
     padding: 40px;
     text-align: center;
@@ -168,165 +408,169 @@ html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; }
     justify-content: center;
     box-shadow: 0 4px 20px rgba(128, 43, 69, 0.1);
 }
-.fc-label { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,0.5); margin-bottom: 16px; font-weight: 600; }
-.fc-text  { font-size: 18px; font-weight: 500; color: white; line-height: 1.5; }
-.fc-hint  { font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 20px; }
 
-/* ── Chat Flow ── */
-.chat-container { display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; padding: 4px; }
-.chat-row-ai    { display: flex; justify-content: flex-start; margin-right: 15%; }
-.chat-row-user  { display: flex; justify-content: flex-end; margin-left: 15%; }
+.fc-label {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.5) !important;
+    margin-bottom: 16px;
+    font-weight: 600;
+}
+
+.fc-text {
+    font-size: 18px;
+    font-weight: 500;
+    color: #FFFFFF !important;
+    line-height: 1.5;
+}
+
+.fc-hint {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.4) !important;
+    margin-top: 20px;
+}
+
+
+/* =========================================================
+   CHAT FLOW
+   ========================================================= */
+
+.chat-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 24px;
+    padding: 4px;
+}
+
+.chat-row-ai {
+    display: flex;
+    justify-content: flex-start;
+    margin-right: 15%;
+}
+
+.chat-row-user {
+    display: flex;
+    justify-content: flex-end;
+    margin-left: 15%;
+}
+
 .bubble-ai {
-    background: white;
+    background: #FFFFFF !important;
     border: 1px solid #EADCE0;
     border-radius: 16px 16px 16px 4px;
     padding: 14px 18px;
     font-size: 14.5px;
-    color: #1A0A0F;
+    color: #1A0A0F !important;
     line-height: 1.6;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.01);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.01);
 }
+
 .bubble-user {
-    background: #802B45;
-    color: white;
+    background: #802B45 !important;
+    color: #FFFFFF !important;
     border-radius: 16px 16px 4px 16px;
     padding: 14px 18px;
     font-size: 14.5px;
     line-height: 1.6;
     box-shadow: 0 3px 12px rgba(128, 43, 69, 0.08);
 }
-/* Rendered markdown inside AI bubbles */
-.bubble-ai p { margin: 0 0 10px; }
-.bubble-ai p:last-child { margin-bottom: 0; }
-.bubble-ai ul, .bubble-ai ol { margin: 4px 0 10px 20px; padding: 0; }
-.bubble-ai li { margin-bottom: 4px; }
-.bubble-ai h1, .bubble-ai h2, .bubble-ai h3, .bubble-ai h4 {
-    font-family: 'DM Serif Display', serif;
-    color: #802B45;
-    margin: 12px 0 6px;
-    line-height: 1.3;
-}
-.bubble-ai code {
-    background: #F5ECEF;
-    border-radius: 4px;
-    padding: 1px 5px;
-    font-size: 13px;
-}
-.bubble-ai pre {
-    background: #F5ECEF;
-    border-radius: 8px;
-    padding: 10px 12px;
-    overflow-x: auto;
-    margin: 6px 0 10px;
-}
-.bubble-ai pre code { background: transparent; padding: 0; }
-.bubble-ai table { border-collapse: collapse; margin: 6px 0 10px; font-size: 13.5px; }
-.bubble-ai th, .bubble-ai td { border: 1px solid #EADCE0; padding: 6px 10px; }
-.bubble-ai th { background: #FBF0F3; }
-.bubble-ai blockquote {
-    border-left: 3px solid #C9A227;
-    margin: 6px 0 10px;
-    padding-left: 12px;
-    color: #7A5864;
-}
-.bubble-user { overflow-wrap: anywhere; }
-.bubble-ai   { overflow-wrap: anywhere; }
-.msg-header      { font-size: 11px; color: #8A6070; margin-bottom: 5px; font-weight: 600; letter-spacing: .02em; }
-.msg-header-user { font-size: 11px; color: #8A6070; margin-bottom: 5px; font-weight: 600; letter-spacing: .02em; text-align: right; }
 
-/* ── Chat Screen: message list + pinned input ──
-   Messages live in st.container(key="chat_messages"). The input form
-   lives in st.container(key="chat_input_fixed") and is pinned to the
-   bottom of the viewport, to the right of the 21rem sidebar. */
-
-/* Vertical spacing between bubbles */
-.st-key-chat_messages > div {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
+.bubble-user * {
+    color: #FFFFFF !important;
 }
 
-/* Room so the last message isn't hidden behind the input.
-   Scoped with :has() so other pages keep their normal padding. */
-.block-container:has(.st-key-chat_messages) {
-    padding-bottom: 130px !important;
+.msg-header {
+    font-size: 11px;
+    color: #8A6070 !important;
+    margin-bottom: 5px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
 }
 
-/* Pinned input strip */
-.st-key-chat_input_fixed {
-    position: fixed !important;
-    bottom: 0;
-    left: 21rem;
-    right: auto !important;
-    /* Streamlit sets width:100% on containers, which pushed the strip
-       off-screen once we offset it by the sidebar. Size it explicitly. */
-    width: calc(100vw - 21rem - 16px) !important;
-    max-width: none !important;
-    box-sizing: border-box !important;
-    z-index: 999;
-    padding: 28px 40px 18px;
-    background: linear-gradient(to top, #FAF6F7 65%, rgba(250, 246, 247, 0));
-    pointer-events: none; /* only the form itself is clickable */
-}
-.st-key-chat_input_fixed > div {
-    max-width: 820px;
-    width: 100%;
-    margin: 0 auto;
-    pointer-events: auto;
+.msg-header-user {
+    font-size: 11px;
+    color: #8A6070 !important;
+    margin-bottom: 5px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-align: right;
 }
 
-/* Sidebar hidden/collapsed -> use the full width */
-.stApp:not(:has([data-testid="stSidebar"])) .st-key-chat_input_fixed {
-    left: 0;
-    width: calc(100vw - 16px) !important;
+
+/* =========================================================
+   CHAT INPUT
+   ========================================================= */
+
+/*
+   Keeps the input visually fixed/stable at the bottom of
+   the chat area without changing Streamlit's functionality.
+*/
+
+[data-testid="stChatInput"] {
+    background: #FFFFFF !important;
+    border: 1px solid #EADCE0 !important;
+    border-radius: 16px !important;
+    box-shadow: 0 4px 18px rgba(128, 43, 69, 0.08) !important;
 }
 
-/* Form card */
-.st-key-chat_input_fixed div[data-testid="stForm"] {
-    box-shadow: 0 6px 25px rgba(128, 43, 69, 0.14) !important;
-    border-radius: 18px !important;
-    padding: 10px 12px !important;
-}
-/* Maroon focus ring instead of Streamlit's default red */
-.st-key-chat_input_fixed input:focus {
-    border-color: #802B45 !important;
-    box-shadow: 0 0 0 1px #802B45 !important;
+[data-testid="stChatInput"] textarea {
+    background: #FFFFFF !important;
+    color: #1A0A0F !important;
 }
 
-/* Small screens: full width, no sidebar offset */
-@media (max-width: 900px) {
-    .st-key-chat_input_fixed {
-        left: 0;
-        width: calc(100vw - 16px) !important;
-        padding: 20px 12px 12px;
-    }
+[data-testid="stChatInput"] textarea::placeholder {
+    color: #9E828D !important;
 }
 
-.prog-bg   { background: #F3ECEF; border-radius: 100px; height: 6px; margin-top: 12px; overflow: hidden; }
-.prog-fill { height: 6px; border-radius: 100px; }
-.section-title { font-family: 'DM Serif Display', serif; font-size: 26px; color: #1A0A0F; }
-.muted { font-size: 14px; color: #7A5864; }
 
-div[data-testid="stForm"] { background: white !important; border: 1px solid #EADCE0 !important; border-radius: 16px !important; padding: 16px !important; }
-.stTabs [data-baseweb="tab-list"] { gap: 8px; }
+/* =========================================================
+   TABS
+   ========================================================= */
+
+.stTabs [data-baseweb="tab-list"] {
+    gap: 8px;
+}
+
 .stTabs [data-baseweb="tab"] {
-    background-color: transparent;
-    border: 1px solid #EADCE0;
+    background-color: transparent !important;
+    border: 1px solid #EADCE0 !important;
     padding: 8px 16px;
     border-radius: 100px;
     font-size: 13px;
-    color: #7A5864;
+    color: #7A5864 !important;
 }
+
+.stTabs [data-baseweb="tab"] p {
+    color: #7A5864 !important;
+}
+
 .stTabs [data-baseweb="tab"][aria-selected="true"] {
     background-color: #802B45 !important;
-    color: white !important;
+    color: #FFFFFF !important;
     border-color: #802B45 !important;
 }
 
-/* ── Sidebar: Academic Ledger identity ──
-   Signature: a maroon+gold "book-spine" seam along the sidebar's inner
-   edge, with a matching gold ribbon marker on the active nav item —
-   a nod to graduation-regalia trim, echoing the 🎓 motif elsewhere. */
+.stTabs [data-baseweb="tab"][aria-selected="true"] p {
+    color: #FFFFFF !important;
+}
+
+.stTabs [data-baseweb="tab"]:hover {
+    background-color: #FBF0F3 !important;
+    border-color: #802B45 !important;
+    color: #802B45 !important;
+}
+
+.stTabs [data-baseweb="tab"]:hover p {
+    color: #802B45 !important;
+}
+
+
+/* =========================================================
+   SIDEBAR
+   ========================================================= */
+
 [data-testid="stSidebar"] {
     background-color: #FBF7F5 !important;
     border-right: 1px solid #EADCE0;
@@ -335,39 +579,61 @@ div[data-testid="stForm"] { background: white !important; border: 1px solid #EAD
     transform: none !important;
     visibility: visible !important;
     position: relative;
+    color-scheme: light !important;
 }
+
+[data-testid="stSidebar"] * {
+    color-scheme: light;
+}
+
+
+/* Sidebar decorative book-spine seam */
+
 [data-testid="stSidebar"]::after {
     content: "";
     position: absolute;
-    top: 0; right: -1px;
+    top: 0;
+    right: -1px;
     width: 3px;
     height: 100%;
-    background: linear-gradient(180deg, #C9A227 0%, #802B45 18%, #802B45 82%, #C9A227 100%);
+    background: linear-gradient(
+        180deg,
+        #C9A227 0%,
+        #802B45 18%,
+        #802B45 82%,
+        #C9A227 100%
+    );
     opacity: 0.55;
 }
-/* Streamlit's native collapse control is unreliable across versions,
-   so it stays hidden — the custom toggle below replaces it entirely. */
+
+
+/* Hide Streamlit native collapse controls */
+
 [data-testid="stSidebarCollapsedControl"],
 [data-testid="baseButton-headerNoPadding"] {
     display: none !important;
 }
 
-/* Custom sidebar toggle — a single persistent button anchored to the
-   sidebar's top-right corner. Two mutually-exclusive variants (only
-   one renders at a time) share the same look; only the position and
-   icon change based on collapsed state. */
+
+/* =========================================================
+   CUSTOM SIDEBAR TOGGLE
+   ========================================================= */
+
 .st-key-sidebar_toggle_expanded,
 .st-key-sidebar_toggle_collapsed {
     position: fixed;
     top: 16px;
     z-index: 999999;
 }
+
 .st-key-sidebar_toggle_expanded {
-    left: calc(21rem - 46px); /* sits right at the sidebar's top-right corner */
+    left: calc(21rem - 46px);
 }
+
 .st-key-sidebar_toggle_collapsed {
-    left: 16px; /* sidebar is gone, so this sits at the content's edge instead */
+    left: 16px;
 }
+
 .st-key-sidebar_toggle_expanded .stButton > button,
 .st-key-sidebar_toggle_collapsed .stButton > button {
     width: 34px;
@@ -375,85 +641,134 @@ div[data-testid="stForm"] { background: white !important; border: 1px solid #EAD
     padding: 0;
     min-height: 0;
     border-radius: 8px;
-    background: white;
-    border: 1px solid #EADCE0;
-    color: #802B45;
+    background: #FFFFFF !important;
+    border: 1px solid #EADCE0 !important;
+    color: #802B45 !important;
     font-weight: 700;
     font-size: 16px;
     line-height: 1;
     box-shadow: 0 2px 10px rgba(128, 43, 69, 0.15);
 }
+
 .st-key-sidebar_toggle_expanded .stButton > button:hover,
 .st-key-sidebar_toggle_collapsed .stButton > button:hover {
     background: #FBF0F3 !important;
     border-color: #802B45 !important;
+    color: #802B45 !important;
 }
 
-/* Section labels styled like ledger tabs: serif italic, gold underline */
+
+/* =========================================================
+   SIDEBAR SECTION LABELS
+   ========================================================= */
+
 .sidebar-section-label {
     font-family: 'DM Serif Display', serif;
     font-style: italic;
     font-size: 14px;
     font-weight: 400;
     letter-spacing: 0.01em;
-    color: #802B45;
+    color: #802B45 !important;
     margin: 22px 2px 10px;
     display: inline-block;
     border-bottom: 1.5px solid #C9A227;
     padding-bottom: 3px;
 }
 
-/* Sidebar buttons: ghost rows with a gold ribbon tab on hover/active */
+
+/* =========================================================
+   SIDEBAR BUTTONS
+   ========================================================= */
+
 [data-testid="stSidebar"] .stButton > button {
-    background-color: transparent;
-    color: #4A3A40;
-    border: 1px solid transparent;
-    border-left: 3px solid transparent;
+    background-color: transparent !important;
+    color: #4A3A40 !important;
+    border: 1px solid transparent !important;
+    border-left: 3px solid transparent !important;
     font-weight: 500;
     text-align: left;
     justify-content: flex-start;
     padding-left: 13px;
     border-radius: 8px;
-    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    transition:
+        background-color 0.15s ease,
+        border-color 0.15s ease,
+        color 0.15s ease;
 }
+
+[data-testid="stSidebar"] .stButton > button p {
+    color: #4A3A40 !important;
+}
+
 [data-testid="stSidebar"] .stButton > button:hover {
     background-color: #FBF0F3 !important;
     border-left-color: #C9A227 !important;
     color: #802B45 !important;
     transform: none;
 }
-/* Active nav item — solid maroon fill with a gold ribbon edge */
+
+[data-testid="stSidebar"] .stButton > button:hover p {
+    color: #802B45 !important;
+}
+
+
+/* Active sidebar navigation item */
+
 [data-testid="stSidebar"] .stButton > button[kind="primary"] {
     background-color: #802B45 !important;
-    color: white !important;
+    color: #FFFFFF !important;
     border-color: #802B45 !important;
     border-left: 3px solid #C9A227 !important;
     font-weight: 600;
     box-shadow: 0 2px 10px rgba(128, 43, 69, 0.28);
 }
+
+[data-testid="stSidebar"] .stButton > button[kind="primary"] p {
+    color: #FFFFFF !important;
+}
+
 [data-testid="stSidebar"] .stButton > button[kind="primary"]:hover {
     background-color: #6B2339 !important;
     box-shadow: 0 3px 14px rgba(128, 43, 69, 0.4) !important;
 }
 
-/* Sidebar file uploader — cream card with a gold dashed edge */
-[data-testid="stSidebar"] div[data-testid="stFileUploaderDropzone"] {
-    background: white !important;
+
+/* =========================================================
+   SIDEBAR FILE UPLOADER
+   ========================================================= */
+
+[data-testid="stSidebar"]
+div[data-testid="stFileUploaderDropzone"] {
+    background: #FFFFFF !important;
     border: 1.5px dashed #D9B54A !important;
     border-radius: 10px !important;
 }
 
-/* Previous-document rows: hairline ledger separators */
-[data-testid="stSidebar"] [data-testid="stHorizontalBlock"] {
+[data-testid="stSidebar"]
+div[data-testid="stFileUploaderDropzone"] * {
+    color: #4A3A40 !important;
+}
+
+
+/* =========================================================
+   SIDEBAR PREVIOUS DOCUMENTS
+   ========================================================= */
+
+[data-testid="stSidebar"]
+[data-testid="stHorizontalBlock"] {
     border-bottom: 1px solid #EFE2E6;
     padding-bottom: 4px;
     margin-bottom: 2px;
 }
 
-/* Account card — small gold corner accent, like an ID badge */
+
+/* =========================================================
+   ACCOUNT CARD
+   ========================================================= */
+
 .sidebar-account-card {
     position: relative;
-    background: white;
+    background: #FFFFFF !important;
     border: 1px solid #EADCE0;
     border-top: 2px solid #C9A227;
     border-radius: 10px;
@@ -463,82 +778,143 @@ div[data-testid="stForm"] { background: white !important; border: 1px solid #EAD
     gap: 10px;
 }
 
-/* ── Account / About / Logout ── */
+
+/* =========================================================
+   LOGOUT
+   ========================================================= */
+
 .st-key-sidebar_logout_wrap .stButton > button {
     border: 1px solid #F3B4B4 !important;
     color: #B91C1C !important;
     background: #FEF2F2 !important;
     font-weight: 600 !important;
 }
+
+.st-key-sidebar_logout_wrap .stButton > button p {
+    color: #B91C1C !important;
+}
+
 .st-key-sidebar_logout_wrap .stButton > button:hover {
     background: #FEE2E2 !important;
     border-color: #DC2626 !important;
     color: #991B1B !important;
 }
 
-/* Delete-document trigger (trash icon) — subtle red hover hint */
+
+/* =========================================================
+   DELETE DOCUMENT BUTTON
+   ========================================================= */
+
 [class*="st-key-del_trigger_"] .stButton > button {
     border-color: transparent !important;
     padding-left: 0 !important;
     justify-content: center !important;
 }
+
 [class*="st-key-del_trigger_"] .stButton > button:hover {
     background: #FEF2F2 !important;
     border-color: #F3B4B4 !important;
     color: #DC2626 !important;
 }
 
-/* Delete confirmation dialog — brand accent + destructive confirm button */
+
+/* =========================================================
+   DIALOG
+   ========================================================= */
+
 [data-testid="stDialog"] > div {
+    background: #FFFFFF !important;
     border-radius: 16px !important;
     border-top: 4px solid #802B45 !important;
+    color-scheme: light !important;
 }
+
+
+/* =========================================================
+   DANGER BUTTONS
+   ========================================================= */
+
 .st-key-danger_delete_btn .stButton > button[kind="primary"] {
     background-color: #DC2626 !important;
     border-color: #DC2626 !important;
+    color: #FFFFFF !important;
 }
+
 .st-key-danger_delete_btn .stButton > button[kind="primary"]:hover {
     background-color: #B91C1C !important;
     box-shadow: 0 3px 14px rgba(220, 38, 38, 0.35) !important;
 }
+
 .st-key-danger_clear_chat_btn .stButton > button[kind="primary"] {
     background-color: #DC2626 !important;
     border-color: #DC2626 !important;
+    color: #FFFFFF !important;
 }
+
 .st-key-danger_clear_chat_btn .stButton > button[kind="primary"]:hover {
     background-color: #B91C1C !important;
     box-shadow: 0 3px 14px rgba(220, 38, 38, 0.35) !important;
 }
 
-/* Primary button (Sign In, Launch Chat, etc.) */
+
+/* =========================================================
+   PRIMARY BUTTONS
+   ========================================================= */
+
 .stButton > button[kind="primary"],
 .stButton > button[data-testid="baseButton-primary"] {
-    background-color: #802B45;
-    color: white;
-    border: none;
-    transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+    background-color: #802B45 !important;
+    color: #FFFFFF !important;
+    border: none !important;
+    transition:
+        background-color 0.2s ease,
+        box-shadow 0.2s ease,
+        transform 0.1s ease;
 }
+
+.stButton > button[kind="primary"] p,
+.stButton > button[data-testid="baseButton-primary"] p {
+    color: #FFFFFF !important;
+}
+
 .stButton > button[kind="primary"]:hover,
 .stButton > button[data-testid="baseButton-primary"]:hover {
     background-color: #6B2339 !important;
+    color: #FFFFFF !important;
     box-shadow: 0 4px 16px rgba(128, 43, 69, 0.35) !important;
     transform: translateY(-1px);
 }
+
 .stButton > button[kind="primary"]:active,
 .stButton > button[data-testid="baseButton-primary"]:active {
     background-color: #5A1C2F !important;
-    transform: translateY(0px);
+    transform: translateY(0);
 }
 
-/* Secondary / default buttons */
+
+/* =========================================================
+   SECONDARY / DEFAULT BUTTONS
+   ========================================================= */
+
 .stButton > button[kind="secondary"],
 .stButton > button[data-testid="baseButton-secondary"],
 .stButton > button:not([kind="primary"]) {
-    background-color: white;
-    color: #802B45;
-    border: 1px solid #EADCE0;
-    transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease;
+    background-color: #FFFFFF !important;
+    color: #802B45 !important;
+    border: 1px solid #EADCE0 !important;
+    transition:
+        background-color 0.2s ease,
+        border-color 0.2s ease,
+        box-shadow 0.2s ease,
+        transform 0.1s ease;
 }
+
+.stButton > button[kind="secondary"] p,
+.stButton > button[data-testid="baseButton-secondary"] p,
+.stButton > button:not([kind="primary"]) p {
+    color: #802B45 !important;
+}
+
 .stButton > button[kind="secondary"]:hover,
 .stButton > button[data-testid="baseButton-secondary"]:hover,
 .stButton > button:not([kind="primary"]):hover {
@@ -548,40 +924,187 @@ div[data-testid="stForm"] { background: white !important; border: 1px solid #EAD
     box-shadow: 0 2px 10px rgba(128, 43, 69, 0.12) !important;
     transform: translateY(-1px);
 }
+
 .stButton > button:not([kind="primary"]):active {
     background-color: #F5E6EA !important;
-    transform: translateY(0px);
+    transform: translateY(0);
 }
 
-/* Tab hover */
-.stTabs [data-baseweb="tab"]:hover {
-    background-color: #FBF0F3 !important;
-    border-color: #802B45 !important;
-    color: #802B45 !important;
-    transition: all 0.2s ease;
+
+/* =========================================================
+   FORMS
+   ========================================================= */
+
+div[data-testid="stForm"] {
+    background: #FFFFFF !important;
+    border: 1px solid #EADCE0 !important;
+    border-radius: 16px !important;
+    padding: 16px !important;
+    color-scheme: light !important;
 }
 
-/* Form submit button */
+
+/* Form inputs */
+
+div[data-testid="stForm"] input,
+div[data-testid="stForm"] textarea {
+    background-color: #FFFFFF !important;
+    color: #1A0A0F !important;
+}
+
+
+/* =========================================================
+   INPUTS / TEXT AREAS
+   ========================================================= */
+
+input,
+textarea {
+    background-color: #FFFFFF !important;
+    color: #1A0A0F !important;
+    border-color: #EADCE0 !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+    color: #9E828D !important;
+}
+
+
+/* =========================================================
+   SELECTBOX / DROPDOWN
+   ========================================================= */
+
+[data-baseweb="select"] > div {
+    background-color: #FFFFFF !important;
+    color: #1A0A0F !important;
+    border-color: #EADCE0 !important;
+}
+
+[data-baseweb="select"] span {
+    color: #1A0A0F !important;
+}
+
+
+/* =========================================================
+   FILE UPLOADER
+   ========================================================= */
+
+[data-testid="stFileUploaderDropzone"] {
+    background-color: #FFFFFF !important;
+    border-color: #D9B54A !important;
+}
+
+[data-testid="stFileUploaderDropzone"] * {
+    color: #4A3A40 !important;
+}
+
+
+/* =========================================================
+   FORM SUBMIT BUTTON
+   ========================================================= */
+
 .stFormSubmitButton > button {
-    transition: background-color 0.2s ease, box-shadow 0.2s ease, transform 0.1s ease !important;
+    transition:
+        background-color 0.2s ease,
+        box-shadow 0.2s ease,
+        transform 0.1s ease !important;
 }
+
 .stFormSubmitButton > button:hover {
     background-color: #6B2339 !important;
     box-shadow: 0 4px 16px rgba(128, 43, 69, 0.35) !important;
     transform: translateY(-1px);
 }
 
-/* ── Study Plan Checkboxes ── */
+
+/* =========================================================
+   STUDY PLAN CHECKBOXES
+   ========================================================= */
+
 .stCheckbox label p {
     font-weight: 600 !important;
     font-size: 14.5px !important;
     color: #1A0A0F !important;
 }
+
 .stCheckbox [data-baseweb="checkbox"] svg {
     transition: all 0.2s ease;
 }
 
-/* ── Auth card vertical centering helper ── */
+
+/* =========================================================
+   STREAMLIT ALERTS
+   ========================================================= */
+
+[data-testid="stAlert"] {
+    color-scheme: light !important;
+}
+
+[data-testid="stAlert"] p {
+    color: #1A0A0F !important;
+}
+
+
+/* =========================================================
+   EXPANDERS
+   ========================================================= */
+
+[data-testid="stExpander"] {
+    background: #FFFFFF !important;
+    border: 1px solid #EADCE0 !important;
+    border-radius: 12px !important;
+}
+
+[data-testid="stExpander"] summary {
+    color: #1A0A0F !important;
+}
+
+
+/* =========================================================
+   MARKDOWN CONTENT
+   ========================================================= */
+
+[data-testid="stMarkdownContainer"] h1,
+[data-testid="stMarkdownContainer"] h2,
+[data-testid="stMarkdownContainer"] h3,
+[data-testid="stMarkdownContainer"] h4 {
+    color: #1A0A0F !important;
+}
+
+[data-testid="stMarkdownContainer"] p {
+    color: #1A0A0F;
+}
+
+[data-testid="stMarkdownContainer"] a {
+    color: #802B45 !important;
+}
+
+
+/* =========================================================
+   SUCCESS / ERROR / INFO / WARNING
+   ========================================================= */
+
+[data-testid="stAlert"][kind="success"] {
+    background-color: #F0FDF4 !important;
+}
+
+[data-testid="stAlert"][kind="error"] {
+    background-color: #FEF2F2 !important;
+}
+
+[data-testid="stAlert"][kind="warning"] {
+    background-color: #FFFBEB !important;
+}
+
+[data-testid="stAlert"][kind="info"] {
+    background-color: #F5F3FF !important;
+}
+
+
+/* =========================================================
+   AUTH PAGE VERTICAL CENTERING
+   ========================================================= */
+
 .auth-page-wrap {
     display: flex;
     align-items: center;
@@ -589,205 +1112,198 @@ div[data-testid="stForm"] { background: white !important; border: 1px solid #EAD
     min-height: 70vh;
 }
 
-/* =========================================================
-   NATIVE STREAMLIT STAT CARDS
-   ========================================================= */
-
-[data-testid="stMetric"] {
-    background: #FFFFFF !important;
-    border: 1px solid #EADCE0 !important;
-    border-radius: 16px !important;
-    padding: 22px !important;
-    box-shadow: 0 2px 12px rgba(128, 43, 69, 0.04) !important;
-    min-height: 145px !important;
-}
-
-[data-testid="stMetricLabel"] {
-    color: #7A5864 !important;
-}
-
-[data-testid="stMetricLabel"] p {
-    color: #7A5864 !important;
-    font-size: 13px !important;
-    font-weight: 500 !important;
-}
-
-[data-testid="stMetricValue"] {
-    color: #802B45 !important;
-    font-family: 'DM Serif Display', serif !important;
-    font-size: 34px !important;
-    line-height: 1.1 !important;
-}
-
-[data-testid="stMetricDelta"] {
-    display: none !important;
-}
-
 
 /* =========================================================
-   PROGRESS BAR INSIDE STAT CARDS
+   RESPONSIVE DESIGN
    ========================================================= */
 
-[data-testid="stMetric"] + div [data-testid="stProgress"] {
-    margin-top: 8px !important;
-}
+@media (max-width: 900px) {
 
+    .auth-left {
+        padding: 32px 26px;
+    }
 
-/* =========================================================
-   GENERAL TEXT COLORS
-   ========================================================= */
-
-.stMarkdown p,
-.stMarkdown li {
-    color: #1A0A0F;
-}
-
-[data-testid="stMarkdownContainer"] p {
-    color: #1A0A0F;
-}
-
-[data-testid="stWidgetLabel"] p {
-    color: #1A0A0F !important;
-}
-
-
-/* =========================================================
-   PAGE HEADER
-   ========================================================= */
-
-.page-title {
-    font-family: 'DM Serif Display', serif;
-    font-size: 38px;
-    line-height: 1.1;
-    color: #1A0A0F;
-    margin-bottom: 5px;
-}
-
-.page-subtitle {
-    font-size: 14px;
-    color: #7A5864;
-}
-
-
-/* =========================================================
-   COURSE BADGE
-   ========================================================= */
-
-.course-badge {
-    display: inline-block;
-    padding: 8px 14px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 600;
-    text-align: center;
-}
-
-
-/* =========================================================
-   SECTION HEADING
-   ========================================================= */
-
-.section-heading {
-    font-family: 'DM Serif Display', serif;
-    color: #1A0A0F;
-    font-size: 24px;
-    margin-bottom: 12px;
-}
-
-
-/* =========================================================
-   AGENT STATUS BANNER
-   ========================================================= */
-
-.agent-banner {
-    background: #FFFFFF;
-    border-top: 1px solid #EADCE0;
-    border-right: 1px solid #EADCE0;
-    border-bottom: 1px solid #EADCE0;
-    border-radius: 12px;
-    padding: 16px 18px;
-}
-
-.agent-banner-title {
-    color: #802B45;
-    font-size: 16px;
-    font-weight: 600;
-    margin-bottom: 4px;
-}
-
-.agent-banner-text {
-    color: #7A5864;
-    font-size: 13px;
-}
-
-
-/* =========================================================
-   UPLOAD AREA
-   ========================================================= */
-
-.upload-title {
-    font-family: 'DM Serif Display', serif;
-    color: #1A0A0F;
-    font-size: 25px;
-    margin-bottom: 5px;
-}
-
-.upload-subtitle {
-    color: #7A5864;
-    font-size: 14px;
-    margin-bottom: 18px;
-}
-
-
-/* =========================================================
-   NATIVE STREAMLIT CONTAINERS
-   ========================================================= */
-
-[data-testid="stVerticalBlockBorderWrapper"] {
-    border-color: #EADCE0 !important;
-    border-radius: 16px !important;
-}
-
-
-/* =========================================================
-   TABS
-   ========================================================= */
-
-button[data-baseweb="tab"] {
-    color: #7A5864 !important;
-    font-weight: 500 !important;
-}
-
-button[data-baseweb="tab"][aria-selected="true"] {
-    color: #802B45 !important;
-}
-
-
-/* =========================================================
-   INFO / WARNING / SUCCESS TEXT
-   ========================================================= */
-
-[data-testid="stAlert"] {
-    border-radius: 12px !important;
-}
-
-
-/* =========================================================
-   MOBILE RESPONSIVENESS
-   ========================================================= */
-
-@media (max-width: 768px) {
-
-    .page-title {
+    .auth-left h1 {
         font-size: 30px;
     }
 
-    [data-testid="stMetric"] {
-        padding: 16px !important;
-        min-height: 125px !important;
+    .section-title {
+        font-size: 23px;
     }
 
-    [data-testid="stMetricValue"] {
-        font-size: 28px !important;
+    .agent-banner {
+        padding: 16px;
+    }
+
+    .stat-card {
+        padding: 18px;
+    }
+
+    .content-card {
+        padding: 18px;
+    }
+
+    .flashcard {
+        padding: 28px 20px;
+    }
+}
+
+
+@media (max-width: 640px) {
+
+    .block-container {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+    }
+
+    .auth-left {
+        padding: 28px 20px;
+        border-radius: 16px;
+    }
+
+    .auth-left h1 {
+        font-size: 27px;
+    }
+
+    .agent-banner {
+        padding: 15px;
+    }
+
+    .banner-left {
+        gap: 10px;
+    }
+
+    .flashcard {
+        min-height: 180px;
+        padding: 25px 16px;
+    }
+
+    .fc-text {
+        font-size: 16px;
+    }
+
+    .content-card {
+        padding: 15px;
+    }
+}
+
+/* ============================================================
+   CHAT INPUT
+   Fixed at bottom + centered in MAIN CONTENT area
+   ============================================================ */
+
+.st-key-chat_input_fixed {
+    position: fixed !important;
+    bottom: 0 !important;
+
+    /* Sidebar-aware positioning */
+    left: 50% !important;
+    right: auto !important;
+
+    transform: translateX(
+        calc(-50% + 140px)
+    ) !important;
+
+    width: min(850px, calc(100vw - 360px)) !important;
+
+    z-index: 9999 !important;
+
+    background: #FAF6F7 !important;
+
+    border-top: 1px solid #EADCE0 !important;
+
+    padding: 12px 0 16px 0 !important;
+
+    box-sizing: border-box !important;
+}
+
+
+/* Keep the form full width */
+
+.st-key-chat_input_fixed form {
+    width: 100% !important;
+    margin: 0 auto !important;
+}
+
+
+/* Keep input + button on same row */
+
+.st-key-chat_input_fixed
+[data-testid="stHorizontalBlock"] {
+    width: 100% !important;
+    margin: 0 !important;
+}
+
+
+/* Input */
+
+.st-key-chat_input_fixed input {
+    width: 100% !important;
+
+    min-height: 44px !important;
+
+    background: #FFFFFF !important;
+    color: #1A0A0F !important;
+
+    border: 1px solid #EADCE0 !important;
+    border-radius: 14px !important;
+}
+
+
+/* Focus */
+
+.st-key-chat_input_fixed input:focus {
+    border-color: #802B45 !important;
+    box-shadow: 0 0 0 1px #802B45 !important;
+}
+
+
+/* Send */
+
+.st-key-chat_input_fixed button {
+    min-height: 44px !important;
+
+    background: #802B45 !important;
+    color: #FFFFFF !important;
+
+    border: none !important;
+    border-radius: 12px !important;
+
+    font-weight: 600 !important;
+}
+
+
+/* Prevent last message from hiding */
+
+.st-key-chat_messages {
+    padding-bottom: 105px !important;
+}
+
+
+/* ============================================================
+   SIDEBAR COLLAPSED
+   ============================================================ */
+
+@media (max-width: 900px) {
+
+    .st-key-chat_input_fixed {
+        width: calc(100vw - 40px) !important;
+
+        transform: translateX(-50%) !important;
+    }
+}
+
+
+/* ============================================================
+   MOBILE
+   ============================================================ */
+
+@media (max-width: 600px) {
+
+    .st-key-chat_input_fixed {
+        width: calc(100vw - 24px) !important;
+
+        padding-left: 0 !important;
+        padding-right: 0 !important;
     }
 }

@@ -13,69 +13,130 @@ from components.sidebar import render_chat_sidebar
 
 # ------------------------------------------------------------
 # HTML helpers
-# Each bubble is ONE line with no indentation and no blank lines.
-# Otherwise Streamlit's markdown parser treats the indented HTML as
-# a code block and prints the raw <div> tags.
 # ------------------------------------------------------------
 
 def _to_html(text: str, escape: bool) -> str:
+    """
+    Convert text to HTML.
+    Escape user text to prevent HTML injection.
+    Convert new lines to <br>.
+    """
     text = str(text)
+
     if escape:
         text = html.escape(text)
+
     return text.replace("\r\n", "\n").replace("\n", "<br>")
 
 
 def _md_to_html(text: str) -> str:
-    """Convert the AI's markdown reply (**bold**, lists, code...) to
-    HTML that fits on a single line, so it can live inside a bubble."""
+    """
+    Convert the AI markdown response to HTML that can be
+    displayed inside the AI chat bubble.
+    """
+
     text = str(text).replace("\r\n", "\n")
 
     try:
-        import markdown  # type: ignore # pip install markdown
+        import markdown
 
         out = markdown.markdown(
             text,
-            extensions=["extra", "nl2br", "sane_lists"],
+            extensions=[
+                "extra",
+                "nl2br",
+                "sane_lists",
+            ],
         )
+
     except ImportError:
-        # Minimal fallback if the `markdown` package isn't installed
+        # Minimal fallback if markdown is not installed
         out = html.escape(text)
-        out = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", out, flags=re.S)
-        out = re.sub(r"(?<!\*)\*(?!\s)(.+?)(?<!\s)\*(?!\*)", r"<i>\1</i>", out)
-        out = re.sub(r"`([^`]+)`", r"<code>\1</code>", out)
+
+        # Bold
+        out = re.sub(
+            r"\*\*(.+?)\*\*",
+            r"<b>\1</b>",
+            out,
+            flags=re.S,
+        )
+
+        # Italic
+        out = re.sub(
+            r"(?<!\*)\*([^\*]+?)\*(?!\*)",
+            r"<i>\1</i>",
+            out,
+        )
+
+        # Inline code
+        out = re.sub(
+            r"`([^`]+)`",
+            r"<code>\1</code>",
+            out,
+        )
+
         out = out.replace("\n", "<br>")
 
-    # No blank lines / indentation allowed inside the HTML block
-    out = re.sub(r">\s*\n\s*<", "><", out)
+    # Prevent whitespace/newline from turning HTML into
+    # an unintended markdown code block.
+    out = re.sub(
+        r">\s*\n\s*<",
+        "><",
+        out,
+    )
+
     return out.replace("\n", "&#10;")
 
 
+# ------------------------------------------------------------
+# AI bubble
+# ------------------------------------------------------------
+
 def _ai_bubble(content_html: str) -> str:
     return (
-        "<div class='chat-row-ai'><div class='bubble-wrap'>"
+        "<div class='chat-row-ai'>"
+        "<div class='bubble-wrap'>"
         "<div class='msg-header'>AI Study Agent</div>"
         f"<div class='bubble-ai'>{content_html}</div>"
-        "</div></div>"
+        "</div>"
+        "</div>"
     )
 
 
-def _user_bubble(content_html: str, student_id: str) -> str:
+# ------------------------------------------------------------
+# User bubble
+# ------------------------------------------------------------
+
+def _user_bubble(
+    content_html: str,
+    student_id: str,
+) -> str:
     return (
-        "<div class='chat-row-user'><div class='bubble-wrap'>"
-        f"<div class='msg-header-user'>You ({html.escape(str(student_id))})</div>"
+        "<div class='chat-row-user'>"
+        "<div class='bubble-wrap'>"
+        f"<div class='msg-header-user'>"
+        f"You ({html.escape(str(student_id))})"
+        f"</div>"
         f"<div class='bubble-user'>{content_html}</div>"
-        "</div></div>"
+        "</div>"
+        "</div>"
     )
 
+
+# ------------------------------------------------------------
+# Main chat
+# ------------------------------------------------------------
 
 def render_chat():
+
     course_name = st.session_state.get(
         "selected_course",
-        "General Study Material"
+        "General Study Material",
     )
 
     color = get_course_info(course_name)["color"]
 
+    # Sidebar
     render_chat_sidebar()
 
     # ============================================================
@@ -88,8 +149,11 @@ def render_chat():
     )
 
     st.markdown(
-        f"<div class='muted' style='margin-bottom:12px;'>"
-        f"Subject: {html.escape(course_name)}</div>",
+        f"""
+        <div class='muted' style='margin-bottom:12px;'>
+            Subject: {html.escape(course_name)}
+        </div>
+        """,
         unsafe_allow_html=True,
     )
 
@@ -99,16 +163,23 @@ def render_chat():
 
     with st.container(key="chat_messages"):
 
+        # --------------------------------------------------------
         # Initial AI message
+        # --------------------------------------------------------
+
         if not st.session_state.chat_messages:
 
             if st.session_state.doc_processed:
+
                 doc_ctx = (
-                    f"I have read <b>{html.escape(str(st.session_state.doc_name))}</b> "
+                    f"I have read "
+                    f"<b>{html.escape(str(st.session_state.doc_name))}</b> "
                     f"and I'm ready to answer your questions about "
                     f"<b>{html.escape(course_name)}</b>."
                 )
+
             else:
+
                 doc_ctx = (
                     "No document uploaded yet — upload one from the "
                     "dashboard sidebar first."
@@ -116,43 +187,66 @@ def render_chat():
 
             st.markdown(
                 _ai_bubble(
-                    f"Assalamu Alaikum {html.escape(str(st.session_state.user_name))}! "
+                    f"Assalamu Alaikum "
+                    f"{html.escape(str(st.session_state.user_name))}! "
                     f"{doc_ctx}"
                 ),
                 unsafe_allow_html=True,
             )
 
+        # --------------------------------------------------------
         # Chat history
+        # --------------------------------------------------------
+
         for msg in st.session_state.chat_messages:
 
             if msg["role"] == "user":
+
                 st.markdown(
                     _user_bubble(
-                        _to_html(msg["content"], escape=True),
+                        _to_html(
+                            msg["content"],
+                            escape=True,
+                        ),
                         st.session_state.student_id,
                     ),
                     unsafe_allow_html=True,
                 )
+
             else:
+
                 st.markdown(
-                    _ai_bubble(_md_to_html(msg["content"])),
+                    _ai_bubble(
+                        _md_to_html(msg["content"])
+                    ),
                     unsafe_allow_html=True,
                 )
 
     # ============================================================
-    # AUTO-SCROLL TO NEWEST MESSAGE
+    # AUTO SCROLL
     # ============================================================
 
     if st.session_state.chat_messages:
+
         components.html(
             """
             <script>
             const doc = window.parent.document;
-            const main = doc.querySelector('[data-testid="stMain"]')
-                      || doc.querySelector('section.main');
-            if (main) {
-                main.scrollTo({ top: main.scrollHeight, behavior: 'smooth' });
-            }
+
+            setTimeout(function () {
+
+                const main =
+                    doc.querySelector('[data-testid="stMain"]') ||
+                    doc.querySelector('section.main');
+
+                if (main) {
+                    main.scrollTo({
+                        top: main.scrollHeight,
+                        behavior: "smooth"
+                    });
+                }
+
+            }, 100);
             </script>
             """,
             height=0,
@@ -160,8 +254,10 @@ def render_chat():
 
     # ============================================================
     # FIXED MESSAGE INPUT
-    # Same form as before, inside a keyed container. The CSS rule
-    # .st-key-chat_input_fixed pins it to the bottom of the screen.
+    #
+    # IMPORTANT:
+    # Keep the input and Send button in horizontal columns.
+    # The CSS controls the fixed positioning.
     # ============================================================
 
     with st.container(key="chat_input_fixed"):
@@ -178,13 +274,17 @@ def render_chat():
             )
 
             with col_in:
+
                 query = st.text_input(
                     "Ask",
-                    placeholder=f"Ask anything about {course_name}...",
+                    placeholder=(
+                        f"Ask anything about {course_name}..."
+                    ),
                     label_visibility="collapsed",
                 )
 
             with col_btn:
+
                 sent = st.form_submit_button(
                     "Send ⚡",
                     use_container_width=True,
@@ -196,13 +296,22 @@ def render_chat():
 
     if sent and query.strip():
 
+        # --------------------------------------------------------
+        # Document check
+        # --------------------------------------------------------
+
         if not st.session_state.doc_processed:
 
             st.warning(
-                "Please upload a document first from the dashboard sidebar."
+                "Please upload a document first from "
+                "the dashboard sidebar."
             )
 
         else:
+
+            # ----------------------------------------------------
+            # Save user message
+            # ----------------------------------------------------
 
             save_message(
                 st.session_state.user_email,
@@ -212,8 +321,15 @@ def render_chat():
             )
 
             st.session_state.chat_messages.append(
-                {"role": "user", "content": query}
+                {
+                    "role": "user",
+                    "content": query,
+                }
             )
+
+            # ----------------------------------------------------
+            # Generate AI response
+            # ----------------------------------------------------
 
             try:
 
@@ -226,15 +342,25 @@ def render_chat():
                         n_results=5,
                     )
 
-                    # Fallback if ChromaDB has no result
+                    # ------------------------------------------------
+                    # Fallback to document text
+                    # ------------------------------------------------
+
                     if not context:
-                        context = st.session_state.doc_text[:4000]
+
+                        context = (
+                            st.session_state.doc_text[:4000]
+                        )
 
                     reply = answer_question(
                         query,
                         context,
                         course_name,
                     )
+
+                # ------------------------------------------------
+                # Save assistant response
+                # ------------------------------------------------
 
                 save_message(
                     st.session_state.user_email,
@@ -244,8 +370,15 @@ def render_chat():
                 )
 
                 st.session_state.chat_messages.append(
-                    {"role": "assistant", "content": reply}
+                    {
+                        "role": "assistant",
+                        "content": reply,
+                    }
                 )
+
+                # ------------------------------------------------
+                # Refresh chat
+                # ------------------------------------------------
 
                 st.rerun()
 
