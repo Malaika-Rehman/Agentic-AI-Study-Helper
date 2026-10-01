@@ -1,23 +1,44 @@
 import streamlit as st
+
 from data.app_data import get_course_info
 from components.sidebar import (
     render_dashboard_sidebar,
     process_document,
 )
-from components.helpers import progress_ring
+
+
+def render_stat_card(value, label, progress=None, caption=None):
+    """
+    Render a statistics card using native Streamlit components.
+    This avoids raw HTML rendering issues on Streamlit Cloud.
+    """
+    with st.container(border=True):
+        st.metric(
+            label=label,
+            value=value,
+        )
+
+        if progress is not None:
+            st.progress(
+                max(0.0, min(1.0, progress)),
+                text=None,
+            )
+
+        if caption:
+            st.caption(caption)
 
 
 def render_home():
+    # ---------------------------------------------------------
+    # Course / theme information
+    # ---------------------------------------------------------
     course_name = st.session_state.get(
         "selected_course",
         "General Study Material",
     )
 
-    course = get_course_info(
-        course_name
-    )
-
-    color = course["color"]
+    course_info = get_course_info(course_name)
+    color = course_info.get("color", "#802B45")
 
     # ---------------------------------------------------------
     # Sidebar
@@ -25,57 +46,58 @@ def render_home():
     render_dashboard_sidebar()
 
     # ---------------------------------------------------------
-    # Title Bar
+    # Page Header
     # ---------------------------------------------------------
-    col_title, col_course, col_chat = st.columns(
-        [2.8, 2, 1.2]
-    )
+    header_col1, header_col2 = st.columns([4, 1])
 
-    with col_title:
+    with header_col1:
         st.markdown(
-            "<div class='section-title'>Study Workspace</div>",
+            """
+            <div class="page-title">
+                Study Workspace
+            </div>
+            <div class="page-subtitle">
+                Your AI-powered academic study environment
+            </div>
+            """,
             unsafe_allow_html=True,
         )
 
-        st.markdown(
-            "<div class='muted'>Shaheed Benazir Bhutto Women University AI Assistant</div>",
-            unsafe_allow_html=True,
-        )
-
-    with col_course:
-        # Subject is automatically detected from uploaded material.
+    with header_col2:
         st.markdown(
             f"""
-        <div style='height:100%; display:flex; align-items:center; justify-content:flex-end;'>
-          <div style='background:{color}1A; border:1px solid {color}40; color:{color};
-                      border-radius:10px; padding:8px 16px; font-size:13px; font-weight:700;
-                      white-space:nowrap; max-width:220px; overflow:hidden;
-                      text-overflow:ellipsis;' title='{course_name}'>
-            📚 {course_name}
-          </div>
-        </div>
-        """,
+            <div class="course-badge"
+                 style="
+                    background:{color}15;
+                    color:{color};
+                    border:1px solid {color}35;
+                 ">
+                {course_name}
+            </div>
+            """,
             unsafe_allow_html=True,
         )
 
-    with col_chat:
-        if st.button(
-            "🤖 Launch Chat Agent",
-            use_container_width=True,
-            type="primary",
-        ):
-            st.session_state.screen = "chat"
-            st.rerun()
-
-    st.markdown(
-        "<div style='height:14px'></div>",
-        unsafe_allow_html=True,
-    )
+    st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
 
     # ---------------------------------------------------------
-    # No document uploaded yet
+    # Launch Chat Button
     # ---------------------------------------------------------
-    if not st.session_state.doc_processed:
+    if st.button(
+        "Launch Chat Agent",
+        use_container_width=False,
+        type="primary",
+        key="launch_chat_agent",
+    ):
+        st.session_state.current_page = "chat"
+        st.rerun()
+
+    st.markdown("<div style='height:12px'></div>", unsafe_allow_html=True)
+
+    # ---------------------------------------------------------
+    # No document uploaded
+    # ---------------------------------------------------------
+    if not st.session_state.get("doc_processed", False):
 
         with st.container(
             border=True,
@@ -83,544 +105,428 @@ def render_home():
         ):
             st.markdown(
                 """
-            <div style='text-align:center; padding: 24px 24px 4px;'>
-              <div style='font-size:40px; margin-bottom:16px;'>📄</div>
+                <div class="upload-title">
+                    Upload your study material
+                </div>
 
-              <div style='font-size:18px; font-weight:700; color:#1A0A0F; margin-bottom:8px;'>
-                Upload Your Study Material
-              </div>
-
-              <div style='font-size:14px; color:#7A5864; max-width:480px; margin:0 auto 22px;'>
-                Upload any subject PDF, DOCX, PPTX, or TXT file.
-                The AI will automatically detect the subject
-                (Pakistan Studies, Mathematics, Computer Science,
-                Biology — anything!) and generate your summary,
-                flashcards, quiz, and personalised study plan.
-              </div>
-            </div>
-            """,
+                <div class="upload-subtitle">
+                    Upload a PDF, DOCX, PPTX, TXT, or supported study file.
+                    The AI agents will analyze it and prepare your study material.
+                </div>
+                """,
                 unsafe_allow_html=True,
             )
 
-            _, col_upl, _ = st.columns(
-                [1, 2, 1]
+            dash_file = st.file_uploader(
+                "Choose your study material",
+                type=[
+                    "pdf",
+                    "docx",
+                    "pptx",
+                    "txt",
+                    "rtf",
+                ],
+                key="dashboard_file_uploader",
             )
 
-            with col_upl:
-                dash_file = st.file_uploader(
-                    "Upload study material",
-                    type=[
-                        "pdf",
-                        "docx",
-                        "pptx",
-                        "txt",
-                        "md",
-                    ],
-                    label_visibility="collapsed",
-                    key="dash_uploader",
+            if dash_file is not None:
+
+                current_doc = st.session_state.get(
+                    "doc_name",
+                    "",
                 )
 
-            st.markdown(
-                "<div style='height:8px'></div>",
-                unsafe_allow_html=True,
-            )
+                if dash_file.name != current_doc:
 
-        # -----------------------------------------------------
-        # IMPORTANT FIX
-        #
-        # Previously:
-        #
-        # process_document(dash_file)
-        # st.rerun()
-        #
-        # The rerun happened regardless of whether processing
-        # succeeded or failed.
-        #
-        # Now:
-        #
-        # process_document()
-        #       ↓
-        #   True / False
-        #       ↓
-        #   True → rerun
-        #   False → stay here and show error
-        # -----------------------------------------------------
-        if (
-            dash_file
-            and dash_file.name != st.session_state.doc_name
-        ):
-            success = process_document(
-                dash_file
-            )
+                    success = process_document(dash_file)
 
-            if success:
-                st.rerun()
+                    if success:
+                        st.rerun()
 
         return
 
     # ---------------------------------------------------------
-    # Agent Banner
+    # Document information
     # ---------------------------------------------------------
-    doc_name = st.session_state.doc_name
+    doc_name = st.session_state.get(
+        "doc_name",
+        "Study Material",
+    )
 
     flashcard_count = len(
-        st.session_state.ai_flashcards
+        st.session_state.get(
+            "ai_flashcards",
+            [],
+        )
     )
 
     quiz_count = len(
-        st.session_state.ai_quiz
+        st.session_state.get(
+            "ai_quiz",
+            [],
+        )
     )
 
-    plan = st.session_state.ai_study_plan
+    # ---------------------------------------------------------
+    # Study plan progress
+    # ---------------------------------------------------------
+    study_plan = st.session_state.get(
+        "ai_study_plan",
+        [],
+    )
 
-    if plan:
-        completed_weeks = sum(
-            1
-            for _, _, done in plan
-            if done
+    total_plan_items = len(study_plan)
+
+    completed_plan_items = 0
+
+    for item in study_plan:
+        if isinstance(item, dict):
+            if item.get("completed", False):
+                completed_plan_items += 1
+
+        elif isinstance(item, bool):
+            if item:
+                completed_plan_items += 1
+
+    if total_plan_items > 0:
+        plan_progress = (
+            completed_plan_items / total_plan_items
         )
-
-        plan_progress = int(
-            (
-                completed_weeks
-                / len(plan)
-            )
-            * 100
-        )
-
     else:
-        plan_progress = 0
+        plan_progress = 0.0
 
+    # ---------------------------------------------------------
+    # Agent Status Banner
+    # ---------------------------------------------------------
     st.markdown(
         f"""
-    <div class="agent-banner">
-      <div class="banner-left">
-        <span class="pulse-dot"></span>
+        <div class="agent-banner"
+             style="
+                border-left:4px solid {color};
+             ">
 
-        <div>
-          <div style='font-size:15px; font-weight:700; color:{color}; letter-spacing:0.02em;'>
-            PLANNER AGENT ACTIVE
-          </div>
+            <div class="agent-banner-title">
+                AI Study Workspace Ready
+            </div>
 
-          <div style='font-size:13px; color:#7A5864; margin-top:3px'>
-            📄 {doc_name} &nbsp;|&nbsp; {flashcard_count} flashcards
-            &nbsp;|&nbsp; {quiz_count} quiz questions
-          </div>
+            <div class="agent-banner-text">
+                <strong>{doc_name}</strong> has been processed.
+                Your summary, flashcards, quiz, and study plan
+                are ready.
+            </div>
+
         </div>
-      </div>
-
-      <div>
-        {progress_ring(plan_progress, color)}
-      </div>
-    </div>
-    """,
+        """,
         unsafe_allow_html=True,
     )
 
+    st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
+
     # ---------------------------------------------------------
-    # Stat Cards
+    # Statistics
     # ---------------------------------------------------------
+    st.markdown(
+        """
+        <div class="section-heading">
+            Study Overview
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
     c1, c2, c3 = st.columns(3)
 
+    # Flashcards
     with c1:
-        st.markdown(
-            f"""
-        <div class="stat-card">
-          <div class="stat-val">{flashcard_count}</div>
-          <div class="stat-lbl">Flashcards Generated</div>
-
-          <div class="prog-bg">
-            <div class="prog-fill"
-                 style="width:100%; background:{color}">
-            </div>
-          </div>
-        </div>
-        """,
-            unsafe_allow_html=True,
+        render_stat_card(
+            value=flashcard_count,
+            label="Flashcards Generated",
+            progress=1.0 if flashcard_count > 0 else 0.0,
+            caption="AI-generated revision cards",
         )
 
+    # Quiz
     with c2:
-        st.markdown(
-            f"""
-        <div class="stat-card">
-          <div class="stat-val">{quiz_count}</div>
-          <div class="stat-lbl">Quiz Questions</div>
-
-          <div style='font-size:11px; color:#9E828D;
-                      margin-top:10px; font-weight:500;'>
-            Generated from your document
-          </div>
-        </div>
-        """,
-            unsafe_allow_html=True,
+        render_stat_card(
+            value=quiz_count,
+            label="Quiz Questions",
+            progress=1.0 if quiz_count > 0 else 0.0,
+            caption="Questions generated from your material",
         )
 
+    # Study Plan
     with c3:
-        plan_count = len(
-            st.session_state.ai_study_plan
+        render_stat_card(
+            value=f"{completed_plan_items}/{total_plan_items}",
+            label="Study Plan Progress",
+            progress=plan_progress,
+            caption=(
+                f"{int(plan_progress * 100)}% completed"
+                if total_plan_items > 0
+                else "No study plan available"
+            ),
         )
 
-        st.markdown(
-            f"""
-        <div class="stat-card">
-          <div class="stat-val">{plan_progress}%</div>
-          <div class="stat-lbl">
-            Study Plan Progress ({plan_count} weeks)
-          </div>
-
-          <div class="prog-bg">
-            <div class="prog-fill"
-                 style="width:{plan_progress}%; background:#22C55E">
-            </div>
-          </div>
-        </div>
-        """,
-            unsafe_allow_html=True,
-        )
-
-    st.markdown(
-        "<div style='height:20px'></div>",
-        unsafe_allow_html=True,
-    )
+    st.markdown("<div style='height:18px'></div>", unsafe_allow_html=True)
 
     # ---------------------------------------------------------
-    # Tabs
+    # Main Study Tabs
     # ---------------------------------------------------------
-    tab1, tab2, tab3, tab4 = st.tabs(
+    tab_summary, tab_flashcards, tab_quiz, tab_plan = st.tabs(
         [
-            "📋 Summary",
-            "🃏 Flashcards",
-            "🧪 Quiz",
-            "📅 Study Plan",
+            "Summary",
+            "Flashcards",
+            "Quiz",
+            "Study Plan",
         ]
     )
 
     # =========================================================
-    # TAB 1 — SUMMARY
+    # SUMMARY
     # =========================================================
-    with tab1:
-        st.markdown(
-            "<div class='content-card'>",
-            unsafe_allow_html=True,
+    with tab_summary:
+
+        summary = st.session_state.get(
+            "ai_summary",
+            "",
         )
 
-        if st.session_state.ai_summary:
-            st.markdown(
-                st.session_state.ai_summary
-            )
-        else:
-            st.info(
-                "Upload a document to generate a summary."
-            )
+        if summary:
 
-        st.markdown(
-            "</div>",
-            unsafe_allow_html=True,
-        )
-
-    # =========================================================
-    # TAB 2 — FLASHCARDS
-    # =========================================================
-    with tab2:
-        st.markdown(
-            "<div class='content-card'>",
-            unsafe_allow_html=True,
-        )
-
-        cards = st.session_state.ai_flashcards
-
-        if not cards:
-            st.info(
-                "Upload a document to generate flashcards."
-            )
-
-        else:
-            idx = (
-                st.session_state.fc_index
-                % len(cards)
-            )
-
-            q, a = cards[idx]
-
-            st.markdown(
-                f"""
-                <div style='font-size:12px; color:#7A5864;
-                            margin-bottom:12px; font-weight:600;'>
-                    Card {idx + 1} of {len(cards)}
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-
-            if not st.session_state.fc_flipped:
+            with st.container(
+                border=True,
+                key="summary_container",
+            ):
                 st.markdown(
-                    f"""
-                    <div class='flashcard'>
-                      <div class='fc-label'>Question</div>
-                      <div class='fc-text'>{q}</div>
-                      <div class='fc-hint'>
-                        Click Flip to reveal the answer
-                      </div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
+                    "### AI Summary"
                 )
 
-            else:
-                st.markdown(
-                    f"""
-                    <div class='flashcard'
-                         style='background:#230810'>
-                      <div class='fc-label'>Answer</div>
-                      <div class='fc-text'>{a}</div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
+                st.markdown(summary)
+
+        else:
+
+            st.info(
+                "No summary has been generated yet."
+            )
+
+    # =========================================================
+    # FLASHCARDS
+    # =========================================================
+    with tab_flashcards:
+
+        flashcards = st.session_state.get(
+            "ai_flashcards",
+            [],
+        )
+
+        if flashcards:
+
+            for index, card in enumerate(flashcards):
+
+                if not isinstance(card, dict):
+                    continue
+
+                question = card.get(
+                    "question",
+                    card.get(
+                        "front",
+                        "",
+                    ),
                 )
 
-            st.markdown(
-                "<div style='height:14px'></div>",
-                unsafe_allow_html=True,
-            )
+                answer = card.get(
+                    "answer",
+                    card.get(
+                        "back",
+                        "",
+                    ),
+                )
 
-            b1, b2, b3 = st.columns(
-                [1.5, 1, 1]
-            )
-
-            with b1:
-                if st.button(
-                    "👁 Flip Card",
-                    use_container_width=True,
+                with st.container(
+                    border=True,
+                    key=f"flashcard_{index}",
                 ):
-                    st.session_state.fc_flipped = (
-                        not st.session_state.fc_flipped
+
+                    st.markdown(
+                        f"**Card {index + 1}**"
                     )
 
-                    st.rerun()
+                    if question:
+                        st.markdown(
+                            f"**Question:** {question}"
+                        )
 
-            with b2:
-                if st.button(
-                    "✓ Got It",
-                    use_container_width=True,
-                ):
-                    st.session_state.fc_index += 1
-                    st.session_state.fc_flipped = False
-
-                    st.rerun()
-
-            with b3:
-                if st.button(
-                    "Next →",
-                    use_container_width=True,
-                ):
-                    st.session_state.fc_index += 1
-                    st.session_state.fc_flipped = False
-
-                    st.rerun()
-
-        st.markdown(
-            "</div>",
-            unsafe_allow_html=True,
-        )
-
-    # =========================================================
-    # TAB 3 — QUIZ
-    # =========================================================
-    with tab3:
-        st.markdown(
-            "<div class='content-card'>",
-            unsafe_allow_html=True,
-        )
-
-        questions = st.session_state.ai_quiz
-
-        if not questions:
-            st.info(
-                "Upload a document to generate quiz questions."
-            )
+                    if answer:
+                        with st.expander(
+                            "Show Answer",
+                            expanded=False,
+                        ):
+                            st.markdown(answer)
 
         else:
-            q_idx = (
-                st.session_state.quiz_index
-                % len(questions)
+
+            st.info(
+                "No flashcards have been generated yet."
             )
 
-            q_text, opts, correct = questions[
-                q_idx
-            ]
+    # =========================================================
+    # QUIZ
+    # =========================================================
+    with tab_quiz:
 
-            answered = (
-                st.session_state.quiz_answered
+        quiz = st.session_state.get(
+            "ai_quiz",
+            [],
+        )
+
+        if quiz:
+
+            for index, question_data in enumerate(quiz):
+
+                if not isinstance(question_data, dict):
+                    continue
+
+                question = question_data.get(
+                    "question",
+                    "",
+                )
+
+                options = question_data.get(
+                    "options",
+                    [],
+                )
+
+                answer = question_data.get(
+                    "answer",
+                    question_data.get(
+                        "correct_answer",
+                        "",
+                    ),
+                )
+
+                with st.container(
+                    border=True,
+                    key=f"quiz_{index}",
+                ):
+
+                    st.markdown(
+                        f"**Question {index + 1}**"
+                    )
+
+                    if question:
+                        st.markdown(question)
+
+                    if options:
+
+                        st.radio(
+                            "Select your answer:",
+                            options,
+                            key=f"quiz_answer_{index}",
+                        )
+
+                    if answer:
+
+                        with st.expander(
+                            "Show Correct Answer",
+                            expanded=False,
+                        ):
+                            st.markdown(
+                                f"**Correct Answer:** {answer}"
+                            )
+
+        else:
+
+            st.info(
+                "No quiz questions have been generated yet."
             )
+
+    # =========================================================
+    # STUDY PLAN
+    # =========================================================
+    with tab_plan:
+
+        if study_plan:
 
             st.markdown(
-                f"""
-                <div style='font-size:12px; color:#7A5864;
-                            margin-bottom:10px; font-weight:600;'>
-                    Question {q_idx + 1} of {len(questions)}
-                </div>
-                """,
-                unsafe_allow_html=True,
+                "### Personal Study Plan"
             )
 
-            st.markdown(
-                f"""
-                <div style='font-weight:600; font-size:15px;
-                            margin-bottom:16px;'>
-                    {q_text}
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+            for index, item in enumerate(study_plan):
 
-            for i, opt in enumerate(opts):
-                prefix = [
-                    "A",
-                    "B",
-                    "C",
-                    "D",
-                ][i]
+                if isinstance(item, dict):
 
-                if answered is not None:
+                    title = item.get(
+                        "title",
+                        item.get(
+                            "task",
+                            item.get(
+                                "topic",
+                                f"Study Task {index + 1}",
+                            ),
+                        ),
+                    )
 
-                    if i == correct:
-                        st.success(
-                            f"{prefix}. {opt}  ✔ Correct"
+                    description = item.get(
+                        "description",
+                        item.get(
+                            "details",
+                            "",
+                        ),
+                    )
+
+                    completed = item.get(
+                        "completed",
+                        False,
+                    )
+
+                    with st.container(
+                        border=True,
+                        key=f"study_plan_{index}",
+                    ):
+
+                        col1, col2 = st.columns(
+                            [5, 1]
                         )
 
-                    elif i == answered:
-                        st.error(
-                            f"{prefix}. {opt}  ❌ Wrong"
-                        )
+                        with col1:
 
-                    else:
-                        st.markdown(
-                            f"&nbsp;&nbsp;**{prefix}.** {opt}"
-                        )
+                            st.markdown(
+                                f"**{title}**"
+                            )
+
+                            if description:
+                                st.caption(
+                                    description
+                                )
+
+                        with col2:
+
+                            st.checkbox(
+                                "Done",
+                                value=completed,
+                                key=f"plan_done_{index}",
+                            )
 
                 else:
-                    if st.button(
-                        f"{prefix}. {opt}",
-                        use_container_width=True,
-                        key=f"quiz_opt_{i}",
+
+                    with st.container(
+                        border=True,
+                        key=f"study_plan_{index}",
                     ):
-                        st.session_state.quiz_answered = i
-                        st.rerun()
 
-            if answered is not None:
-                st.markdown(
-                    "<div style='height:12px'></div>",
-                    unsafe_allow_html=True,
-                )
-
-                if st.button(
-                    "Next Question →",
-                    type="primary",
-                ):
-                    st.session_state.quiz_index += 1
-                    st.session_state.quiz_answered = None
-                    st.rerun()
-
-        st.markdown(
-            "</div>",
-            unsafe_allow_html=True,
-        )
-
-    # =========================================================
-    # TAB 4 — STUDY PLAN
-    # =========================================================
-    with tab4:
-        st.markdown(
-            "<div class='content-card'>",
-            unsafe_allow_html=True,
-        )
-
-        plan = st.session_state.ai_study_plan
-
-        if not plan:
-            st.info(
-                "Upload a document to generate a study plan."
-            )
+                        st.write(
+                            str(item)
+                        )
 
         else:
-            st.markdown(
-                f"""
-                <div style='font-size:15px; font-weight:700;
-                            color:{color}; margin-bottom:4px'>
-                    Your Personalised Study Plan — {course_name}
-                </div>
-                """,
-                unsafe_allow_html=True,
+
+            st.info(
+                "No study plan has been generated yet."
             )
 
-            st.markdown(
-                """
-                <div style='font-size:12.5px; color:#7A5864;
-                            margin-bottom:16px;'>
-                    Check off each week as you complete it —
-                    your progress ring updates automatically.
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
 
-            updated = False
-            new_plan = []
-
-            for i, (title, desc, done) in enumerate(plan):
-
-                checked = st.checkbox(
-                    title,
-                    value=done,
-                    key=f"week_check_{i}",
-                )
-
-                st.markdown(
-                    f"""
-                    <div style='font-size:13px; color:#7A5864;
-                                margin-left:28px;
-                                margin-top:-8px;
-                                margin-bottom:14px;'>
-                        {desc}
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
-
-                if checked != done:
-                    updated = True
-
-                new_plan.append(
-                    (
-                        title,
-                        desc,
-                        checked,
-                    )
-                )
-
-            if updated:
-                from data.database import (
-                    update_study_plan,
-                    update_user_activity,
-                )
-
-                st.session_state.ai_study_plan = new_plan
-
-                update_study_plan(
-                    st.session_state.doc_id,
-                    [
-                        list(p)
-                        for p in new_plan
-                    ],
-                )
-
-                update_user_activity(
-                    st.session_state.user_email
-                )
-
-                st.rerun()
-
-        st.markdown(
-            "</div>",
-            unsafe_allow_html=True,
-        )
+# -------------------------------------------------------------
+# Streamlit entry point
+# -------------------------------------------------------------
+if __name__ == "__main__":
+    render_home()

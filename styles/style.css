@@ -588,3 +588,206 @@ div[data-testid="stForm"] { background: white !important; border: 1px solid #EAD
     justify-content: center;
     min-height: 70vh;
 }
+
+/* =========================================================
+   NATIVE STREAMLIT STAT CARDS
+   ========================================================= */
+
+[data-testid="stMetric"] {
+    background: #FFFFFF !important;
+    border: 1px solid #EADCE0 !important;
+    border-radius: 16px !important;
+    padding: 22px !important;
+    box-shadow: 0 2px 12px rgba(128, 43, 69, 0.04) !important;
+    min-height: 145px !important;
+}
+
+[data-testid="stMetricLabel"] {
+    color: #7A5864 !important;
+}
+
+[data-testid="stMetricLabel"] p {
+    color: #7A5864 !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+}
+
+[data-testid="stMetricValue"] {
+    color: #802B45 !important;
+    font-family: 'DM Serif Display', serif !important;
+    font-size: 34px !important;
+    line-height: 1.1 !important;
+}
+
+[data-testid="stMetricDelta"] {
+    display: none !important;
+}
+
+
+/* =========================================================
+   PROGRESS BAR INSIDE STAT CARDS
+   ========================================================= */
+
+[data-testid="stMetric"] + div [data-testid="stProgress"] {
+    margin-top: 8px !important;
+}
+
+
+/* =========================================================
+   GENERAL TEXT COLORS
+   ========================================================= */
+
+.stMarkdown p,
+.stMarkdown li {
+    color: #1A0A0F;
+}
+
+[data-testid="stMarkdownContainer"] p {
+    color: #1A0A0F;
+}
+
+[data-testid="stWidgetLabel"] p {
+    color: #1A0A0F !important;
+}
+
+
+/* =========================================================
+   PAGE HEADER
+   ========================================================= */
+
+.page-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 38px;
+    line-height: 1.1;
+    color: #1A0A0F;
+    margin-bottom: 5px;
+}
+
+.page-subtitle {
+    font-size: 14px;
+    color: #7A5864;
+}
+
+
+/* =========================================================
+   COURSE BADGE
+   ========================================================= */
+
+.course-badge {
+    display: inline-block;
+    padding: 8px 14px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+}
+
+
+/* =========================================================
+   SECTION HEADING
+   ========================================================= */
+
+.section-heading {
+    font-family: 'DM Serif Display', serif;
+    color: #1A0A0F;
+    font-size: 24px;
+    margin-bottom: 12px;
+}
+
+
+/* =========================================================
+   AGENT STATUS BANNER
+   ========================================================= */
+
+.agent-banner {
+    background: #FFFFFF;
+    border-top: 1px solid #EADCE0;
+    border-right: 1px solid #EADCE0;
+    border-bottom: 1px solid #EADCE0;
+    border-radius: 12px;
+    padding: 16px 18px;
+}
+
+.agent-banner-title {
+    color: #802B45;
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.agent-banner-text {
+    color: #7A5864;
+    font-size: 13px;
+}
+
+
+/* =========================================================
+   UPLOAD AREA
+   ========================================================= */
+
+.upload-title {
+    font-family: 'DM Serif Display', serif;
+    color: #1A0A0F;
+    font-size: 25px;
+    margin-bottom: 5px;
+}
+
+.upload-subtitle {
+    color: #7A5864;
+    font-size: 14px;
+    margin-bottom: 18px;
+}
+
+
+/* =========================================================
+   NATIVE STREAMLIT CONTAINERS
+   ========================================================= */
+
+[data-testid="stVerticalBlockBorderWrapper"] {
+    border-color: #EADCE0 !important;
+    border-radius: 16px !important;
+}
+
+
+/* =========================================================
+   TABS
+   ========================================================= */
+
+button[data-baseweb="tab"] {
+    color: #7A5864 !important;
+    font-weight: 500 !important;
+}
+
+button[data-baseweb="tab"][aria-selected="true"] {
+    color: #802B45 !important;
+}
+
+
+/* =========================================================
+   INFO / WARNING / SUCCESS TEXT
+   ========================================================= */
+
+[data-testid="stAlert"] {
+    border-radius: 12px !important;
+}
+
+
+/* =========================================================
+   MOBILE RESPONSIVENESS
+   ========================================================= */
+
+@media (max-width: 768px) {
+
+    .page-title {
+        font-size: 30px;
+    }
+
+    [data-testid="stMetric"] {
+        padding: 16px !important;
+        min-height: 125px !important;
+    }
+
+    [data-testid="stMetricValue"] {
+        font-size: 28px !important;
+    }
+}
