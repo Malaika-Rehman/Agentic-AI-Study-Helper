@@ -6,10 +6,14 @@ def render_onboarding():
 
     st.markdown("""
     <style>
-    header, [data-testid="stHeader"], .stAppHeader {
+    header, [data-testid="stHeader"], .stAppHeader,
+    [data-testid="stHeaderActionElements"],
+    [data-testid="stToolbar"],
+    [data-testid="stDecoration"] {
         display: none !important;
         height: 0 !important;
         min-height: 0 !important;
+        max-height: 0 !important;
         padding: 0 !important;
         margin: 0 !important;
         visibility: hidden !important;
@@ -26,51 +30,71 @@ def render_onboarding():
         padding: 0 !important;
         overflow-x: hidden !important;
         overflow-y: auto !important;
-    }
-    .stApp {
-        min-height: 100vh !important;
         background: white !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        overflow-x: hidden !important;
-        overflow-y: auto !important;
     }
+    .stApp,
     [data-testid="stAppViewContainer"],
     [data-testid="stMain"],
-    .stMainBlockContainer {
-        min-height: 100vh !important;
-        padding-top: 0 !important;
-        margin-top: 0 !important;
-        overflow-x: hidden !important;
-        overflow-y: auto !important;
-    }
-
+    .stMainBlockContainer,
     .main .block-container,
     [data-testid="stMainBlockContainer"],
-    .stMainBlockContainer,
     .block-container {
+        min-height: 100vh !important;
+        background: white !important;
+        background-color: white !important;
+        margin: 0 !important;
+        margin-top: 0 !important;
         padding: 0 !important;
         padding-top: 0 !important;
         padding-bottom: 0 !important;
         padding-left: 0 !important;
         padding-right: 0 !important;
         max-width: 100% !important;
-        min-height: 100vh !important;
         overflow-x: hidden !important;
         overflow-y: auto !important;
+    }
+
+    /* Hide any empty markdown or style containers that add unwanted top gaps */
+    div[data-testid="stElementContainer"]:has(style:only-child),
+    div[data-testid="element-container"]:has(style:only-child),
+    .stElementContainer:has(style:only-child),
+    .element-container:has(style:only-child),
+    div[data-testid="stElementContainer"]:empty,
+    div[data-testid="element-container"]:empty {
+        display: none !important;
+        height: 0 !important;
+        min-height: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    .block-container > div[data-testid="stVerticalBlock"] {
+        gap: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
     }
 
     /* Make the column row fill height on desktop */
     [data-testid="stHorizontalBlock"] {
         gap: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
         min-height: 100vh !important;
         align-items: stretch !important;
         flex-wrap: nowrap !important;
     }
+
     /* Each column fills height on desktop */
     [data-testid="stColumn"] {
         padding: 0 !important;
+        margin: 0 !important;
         min-height: 100vh !important;
+    }
+    [data-testid="stColumn"]:first-child {
+        background: #802B45 !important;
+    }
+    [data-testid="stColumn"]:last-child {
+        background: white !important;
     }
 
     /* ── Right column inner layout ── */
@@ -79,18 +103,18 @@ def render_onboarding():
         display: flex !important;
         flex-direction: column !important;
         justify-content: center !important;
-        padding: 36px 52px !important;
+        padding: 28px 40px !important;
         background: white !important;
         border-left: 1px solid #EADCE0 !important;
         gap: 0 !important;
         box-sizing: border-box !important;
     }
-    /* Streamlit wrappers inside right col */
-    [data-testid="stColumn"]:last-child [data-testid="stVerticalBlock"] {
+    /* Streamlit direct vertical block inside right col */
+    [data-testid="stColumn"]:last-child > div:first-child > [data-testid="stVerticalBlock"] {
         display: flex !important;
         flex-direction: column !important;
         justify-content: center !important;
-        height: 100% !important;
+        width: 100% !important;
         gap: 0 !important;
     }
 
@@ -99,37 +123,37 @@ def render_onboarding():
         background: #802B45 !important;
         color: white !important;
         border: none !important;
-        border-radius: 13px !important;
-        font-size: 15px !important;
+        border-radius: 12px !important;
+        font-size: 14.5px !important;
         font-weight: 700 !important;
-        height: 52px !important;
-        box-shadow: 0 4px 20px rgba(128,43,69,0.28) !important;
+        height: 46px !important;
+        box-shadow: 0 4px 18px rgba(128,43,69,0.25) !important;
     }
     .st-key-gs_signup > div > button:hover {
         background: #6B2339 !important;
-        box-shadow: 0 8px 28px rgba(128,43,69,0.40) !important;
-        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 24px rgba(128,43,69,0.35) !important;
+        transform: translateY(-1px) !important;
     }
     .st-key-gs_login > div > button {
         background: white !important;
         border: 1.5px solid #EADCE0 !important;
         color: #802B45 !important;
-        border-radius: 13px !important;
+        border-radius: 12px !important;
         font-size: 14px !important;
         font-weight: 600 !important;
-        height: 48px !important;
+        height: 44px !important;
     }
     .st-key-gs_login > div > button:hover {
         background: #FBF0F3 !important;
         border-color: #802B45 !important;
     }
     .st-key-gs_signup {
-        margin: 0 0 16px 0 !important;
-        margin-bottom: 16px !important;
+        margin: 0 0 10px 0 !important;
+        margin-bottom: 10px !important;
     }
     .st-key-gs_signup > div {
-        margin: 0 0 16px 0 !important;
-        margin-bottom: 16px !important;
+        margin: 0 0 10px 0 !important;
+        margin-bottom: 10px !important;
     }
     .st-key-gs_login { margin: 0 !important; }
     .st-key-gs_login > div { margin: 0 !important; }
@@ -195,7 +219,7 @@ def render_onboarding():
             display: flex;
             flex-direction: column;
             justify-content: center;
-            padding: 44px 44px;
+            padding: 32px 36px;
             position: relative;
             overflow: hidden;
             font-family: 'DM Sans', sans-serif;
@@ -212,12 +236,12 @@ def render_onboarding():
         .gs-logo {
             display: flex; align-items: center; gap: 10px;
             position: relative; z-index: 2;
-            margin-bottom: 24px;
+            margin-bottom: 16px;
         }
-        .gs-logo-ico  { font-size: 26px; }
+        .gs-logo-ico  { font-size: 24px; }
         .gs-logo-name {
             font-family: 'DM Serif Display', serif;
-            font-size: 17px; color: rgba(255,255,255,0.92);
+            font-size: 16.5px; color: rgba(255,255,255,0.92);
         }
         .gs-main { position: relative; z-index: 2; }
         .gs-kicker {
@@ -227,29 +251,29 @@ def render_onboarding():
             color: rgba(255,255,255,0.70);
             font-size: 11px; font-weight: 700;
             letter-spacing: 0.1em; text-transform: uppercase;
-            padding: 5px 13px; border-radius: 100px;
-            margin-bottom: 18px;
+            padding: 4px 12px; border-radius: 100px;
+            margin-bottom: 14px;
         }
         .gs-headline {
             font-family: 'DM Serif Display', serif;
-            font-size: 44px; line-height: 1.12;
-            color: white; margin: 0 0 18px;
+            font-size: 38px; line-height: 1.12;
+            color: white; margin: 0 0 14px;
             letter-spacing: -0.5px;
         }
         .gs-headline em { font-style: italic; color: #FFB3C6; }
         .gs-desc {
-            font-size: 15px;
+            font-size: 14px;
             color: rgba(255,255,255,0.68);
-            line-height: 1.75; max-width: 360px;
+            line-height: 1.65; max-width: 360px;
         }
         .gs-stats {
-            display: flex; gap: 10px; margin-top: 24px;
+            display: flex; gap: 10px; margin-top: 18px;
             position: relative; z-index: 2;
         }
         .gs-stat {
             background: rgba(255,255,255,0.10);
             border: 1px solid rgba(255,255,255,0.14);
-            border-radius: 12px; padding: 12px 18px; text-align: center;
+            border-radius: 12px; padding: 10px 16px; text-align: center;
         }
         .gs-stat-n {
             font-family: 'DM Serif Display', serif;
@@ -294,7 +318,7 @@ def render_onboarding():
             <h1 class="gs-headline">
               Your notes.<br>Your AI.<br><em>Your success.</em>
             </h1>
-            <p class="gs-desc">
+            <p class="gs-desc"> 
               Upload any study file and the AI instantly creates
               your summary, flashcards, quiz, and study plan.
               No tech skills needed. Works for every subject.
@@ -325,62 +349,51 @@ def render_onboarding():
         # Badge + heading — static HTML (no fixed height)
         st.html("""
         <style>
-        @import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@400;500;600;700;800&display=swap');
-
-        .gs-badge {
-            display: inline-block;
-            background: #FBE8EE; color: #802B45;
-            font-family: 'DM Sans', sans-serif;
-            font-size: 11px; font-weight: 800;
-            letter-spacing: 0.09em; text-transform: uppercase;
-            padding: 5px 14px; border-radius: 100px;
-            margin-bottom: 16px;
-        }
         .gs-rtitle {
             font-family: 'DM Serif Display', serif;
-            font-size: 28px; color: #1A0A0F;
-            margin: 0 0 6px; letter-spacing: -0.3px;
+            font-size: 26px; color: #1A0A0F;
+            margin: 0 0 4px; letter-spacing: -0.3px;
         }
         .gs-rsub {
             font-family: 'DM Sans', sans-serif;
-            font-size: 14px; color: #7A5864;
-            line-height: 1.65; margin: 0 0 24px;
+            font-size: 13.5px; color: #7A5864;
+            line-height: 1.55; margin: 0 0 16px;
         }
         .gs-step {
-            display: flex; align-items: center; gap: 14px;
-            padding: 14px 16px;
+            display: flex; align-items: center; gap: 12px;
+            padding: 10px 14px;
             background: #FDF7F8;
             border: 1px solid #EADCE0;
-            border-radius: 14px;
-            margin-bottom: 10px;
+            border-radius: 12px;
+            margin-bottom: 8px;
             font-family: 'DM Sans', sans-serif;
             cursor: default;
         }
         .gs-step:last-child { margin-bottom: 0; }
         .gs-step-ico {
-            width: 46px; height: 46px; border-radius: 12px;
+            width: 38px; height: 38px; border-radius: 10px;
             display: flex; align-items: center; justify-content: center;
-            font-size: 22px; flex-shrink: 0;
+            font-size: 19px; flex-shrink: 0;
         }
         .s-pink  { background: #FBE8EE; }
         .s-blue  { background: #EFF6FF; }
         .s-green { background: #F0FDF4; }
         .gs-step-label {
-            font-size: 14px; font-weight: 700; color: #1A0A0F; margin-bottom: 2px;
+            font-size: 13.5px; font-weight: 700; color: #1A0A0F; margin-bottom: 1px;
         }
         .gs-step-note {
-            font-size: 12.5px; color: #7A5864;
+            font-size: 12px; color: #7A5864;
         }
         .gs-step-num {
-            margin-left: auto; width: 24px; height: 24px;
+            margin-left: auto; width: 22px; height: 22px;
             border-radius: 50%; background: #FBE8EE;
-            color: #802B45; font-size: 11px; font-weight: 800;
+            color: #802B45; font-size: 10.5px; font-weight: 800;
             display: flex; align-items: center; justify-content: center;
             flex-shrink: 0;
         }
         .gs-divider {
             display: flex; align-items: center; gap: 10px;
-            margin: 22px 0 16px;
+            margin: 16px 0 12px;
         }
         .gs-divider-line { flex: 1; height: 1px; background: #EADCE0; }
         .gs-divider-text {
@@ -391,7 +404,6 @@ def render_onboarding():
         }
         </style>
 
-        <span class="gs-badge">Get Started — It's Free</span>
         <h2 class="gs-rtitle">How it works</h2>
         <p class="gs-rsub">Three simple steps. No setup. No tech knowledge needed.</p>
 
@@ -438,7 +450,7 @@ def render_onboarding():
             st.session_state.screen = "signup"
             st.rerun()
 
-        st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
+        st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
 
         if st.button("I already have an account  →",
                      key="gs_login",

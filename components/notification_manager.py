@@ -712,7 +712,7 @@ def send_email_reminder(to_email: str, user_name: str, subject: str, body_text: 
                 <span style="font-size:24px;">🎓</span>
                 <span style="font-size:18px; font-weight:700; color:#802B45;">Agentic AI Study Helper</span>
             </div>
-            <h2 style="color:#1A0A0F; margin-top:0; font-size:20px;">Assalamu Alaikum {user_name}!</h2>
+            <h2 style="color:#1A0A0F; margin-top:0; font-size:20px;">Hello {user_name}!</h2>
             <p style="color:#7A5864; font-size:14px; line-height:1.6;">
                 {body_text}
             </p>
@@ -722,7 +722,7 @@ def send_email_reminder(to_email: str, user_name: str, subject: str, body_text: 
                 </p>
             </div>
             <p style="font-size:12px; color:#9E828D; margin-top:24px;">
-                Shaheed Benazir Bhutto Women University — AI Assistant
+                Agentic AI Study Helper — AI Assistant
             </p>
         </div>
         """

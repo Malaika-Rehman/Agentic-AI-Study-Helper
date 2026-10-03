@@ -78,13 +78,18 @@ body {
    STREAMLIT HEADER / TOOLBAR
    ========================================================= */
 
-[data-testid="stHeader"] {
-    background: transparent !important;
-    box-shadow: none !important;
+header, [data-testid="stHeader"], .stAppHeader {
+    display: none !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    visibility: hidden !important;
 }
 
 [data-testid="stToolbar"],
 [data-testid="stDecoration"] {
+    display: none !important;
     visibility: hidden !important;
 }
 
@@ -93,10 +98,16 @@ body {
    MAIN CONTAINER
    ========================================================= */
 
-.block-container {
-    padding-top: 1.5rem !important;
+.block-container,
+[data-testid="stMainBlockContainer"],
+.stMainBlockContainer {
+    padding-top: 0.75rem !important;
     padding-bottom: 1.5rem !important;
 }
+
+.spacer-tiny { height: 4px; }
+.spacer-small { height: 8px; }
+.spacer-medium { height: 14px; }
 
 
 /* =========================================================
@@ -219,7 +230,7 @@ body {
     border: 2px dashed #EADCE0 !important;
     border-radius: 16px !important;
     background: #FFFFFF !important;
-    padding: 8px 16px !important;
+    padding: 18px 24px !important;
 }
 
 
@@ -237,9 +248,36 @@ div[data-testid="stFileUploaderDropzone"] * {
     color: #4A3A40 !important;
 }
 
+.upload-intro {
+    text-align: center;
+    padding: 12px 16px 8px;
+}
+
+.upload-icon {
+    font-size: 38px;
+    margin-bottom: 6px;
+    display: inline-block;
+}
+
+.upload-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: #1A0A0F !important;
+    margin-bottom: 6px;
+}
+
+.upload-description {
+    font-size: 13.5px;
+    color: #7A5864 !important;
+    line-height: 1.55;
+    max-width: 520px;
+    margin: 0 auto 14px;
+}
+
 
 /* =========================================================
-   DASHBOARD TITLES
+   DASHBOARD TITLES & BADGES
    ========================================================= */
 
 .section-title {
@@ -251,6 +289,30 @@ div[data-testid="stFileUploaderDropzone"] * {
 .muted {
     font-size: 14px;
     color: #7A5864 !important;
+}
+
+.course-badge-wrap {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    height: 100%;
+}
+
+.course-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border-radius: 8px;
+    border: 1px solid #D0DCEB;
+    background: #EEF2F6;
+    color: #204A87;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
 }
 
 
@@ -267,9 +329,17 @@ div[data-testid="stFileUploaderDropzone"] * {
     background: #FFFFFF !important;
     border: 1px solid #EADCE0 !important;
     border-radius: 16px !important;
-    padding: 18px 22px !important;
-    margin-bottom: 24px !important;
+    padding: 16px 22px !important;
+    margin-bottom: 20px !important;
     box-shadow: 0 2px 12px rgba(128, 43, 69, 0.02);
+}
+
+.agent-title {
+    font-size: 13.5px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    color: #1E3A8A;
+    text-transform: uppercase;
 }
 
 
@@ -330,6 +400,24 @@ div[data-testid="stFileUploaderDropzone"] * {
    METRIC / STAT CARDS
    ========================================================= */
 
+.progress-ring-wrap {
+    position: relative;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto;
+}
+
+.progress-ring-label {
+    position: absolute;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 800;
+    color: #1A0A0F;
+}
+
 .stat-card {
     background: #FFFFFF !important;
     border: 1px solid #EADCE0 !important;
@@ -351,6 +439,12 @@ div[data-testid="stFileUploaderDropzone"] * {
     color: #7A5864 !important;
     margin-top: 6px;
     font-weight: 500;
+}
+
+.stat-sub {
+    font-size: 11.5px;
+    color: #9E828D !important;
+    margin-top: 4px;
 }
 
 .prog-bg {

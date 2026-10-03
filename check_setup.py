@@ -49,9 +49,6 @@ if env_ok:
 else:
     results.append(("❌", ".env file", "Not found — create it with GROQ_API_KEY=your_key"))
 
-results.append(("✅" if os.path.exists("assets/SBBWUP_logo.png") else "❌",
-                "assets/SBBWUP_logo.png",
-                "Found" if os.path.exists("assets/SBBWUP_logo.png") else "Missing"))
 
 print("\n" + "="*58)
 print("   AGENTIC AI STUDY HELPER — Setup Check")

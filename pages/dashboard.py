@@ -19,7 +19,8 @@ def render_home():
     # =========================================================
 
     col_title, col_course, col_chat = st.columns(
-        [2.8, 2, 1.2]
+        [2.8, 1.8, 1.4],
+        vertical_alignment="center",
     )
 
     with col_title:
@@ -30,7 +31,7 @@ def render_home():
 
         st.markdown(
             "<div class='muted'>"
-            "Shaheed Benazir Bhutto Women University AI Assistant"
+            "Your AI-powered study workspace"
             "</div>",
             unsafe_allow_html=True,
         )
@@ -39,14 +40,8 @@ def render_home():
         st.markdown(
             f"""
             <div class="course-badge-wrap">
-                <div class="course-badge"
-                     style="
-                        background:{color}1A;
-                        border-color:{color}40;
-                        color:{color};
-                     "
-                     title="{course_name}">
-                    📚 {course_name}
+                <div class="course-badge" title="{course_name}">
+                    💻 {course_name}
                 </div>
             </div>
             """,
@@ -78,25 +73,18 @@ def render_home():
             key="dash_upload_container",
         ):
 
-            st.markdown(
-                """
-                <div class="upload-intro">
-                    <div class="upload-icon">📄</div>
-
-                    <div class="upload-title">
-                        Upload Your Study Material
-                    </div>
-
-                    <div class="upload-description">
-                        Upload any subject PDF, DOCX, PPTX, or TXT file.
-                        The AI will automatically detect the subject and
-                        generate your summary, flashcards, quiz, and
-                        personalised study plan.
-                    </div>
+            st.html("""
+            <div class="upload-intro">
+                <div class="upload-icon">📄</div>
+                <div class="upload-title">Upload Your Study Material</div>
+                <div class="upload-description">
+                    Upload any subject PDF, DOCX, PPTX, or TXT file.
+                    The AI will automatically detect the subject and
+                    generate your summary, flashcards, quiz, and
+                    personalised study plan.
                 </div>
-                """,
-                unsafe_allow_html=True,
-            )
+            </div>
+            """)
 
             _, col_upl, _ = st.columns([1, 2, 1])
 
@@ -179,46 +167,40 @@ def render_home():
         )
 
         with banner_col1:
-
-            status_col1, status_col2 = st.columns(
-                [0.15, 5],
-                vertical_alignment="center",
-            )
-
-            with status_col1:
-                st.markdown(
-                    "<div class='pulse-dot'></div>",
-                    unsafe_allow_html=True,
-                )
-
-            with status_col2:
-
-                st.markdown(
-                    f"""
-                    <div class="agent-title">
-                        PLANNER AGENT ACTIVE
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
-
-                st.caption(
-                    f"📄 {doc_name}  |  "
-                    f"{flashcard_count} flashcards  |  "
-                    f"{quiz_count} quiz questions"
-                )
-
-        with banner_col2:
-
             st.markdown(
                 f"""
-                <div class="progress-summary">
-                    <div class="progress-number">
-                        {plan_progress}%
+                <div style="display:flex; align-items:center; gap:14px;">
+                    <div class="pulse-dot"></div>
+                    <div>
+                        <div class="agent-title" style="margin-bottom:3px;">
+                            PLANNER AGENT ACTIVE
+                        </div>
+                        <div style="font-size:12.5px; color:#64748B;">
+                            📄 {doc_name} &nbsp;|&nbsp; {flashcard_count} flashcards &nbsp;|&nbsp; {quiz_count} quiz questions
+                        </div>
                     </div>
-                    <div class="progress-label">
-                        Plan
-                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+        with banner_col2:
+            _circ = 2 * 3.14159 * 26  # ≈ 163.36
+            _offset = _circ * (1 - plan_progress / 100)
+            st.markdown(
+                f"""
+                <div class="progress-ring-wrap">
+                    <svg viewBox="0 0 64 64" width="58" height="58">
+                        <circle cx="32" cy="32" r="26"
+                                fill="none" stroke="#E2E8F0" stroke-width="4.5"/>
+                        <circle cx="32" cy="32" r="26"
+                                fill="none" stroke="#1E3A8A" stroke-width="4.5"
+                                stroke-linecap="round"
+                                stroke-dasharray="{_circ:.2f}"
+                                stroke-dashoffset="{_offset:.2f}"
+                                transform="rotate(-90 32 32)"/>
+                    </svg>
+                    <div class="progress-ring-label">{plan_progress}%</div>
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -240,35 +222,20 @@ def render_home():
     # ---------------------------------------------------------
 
     with c1:
-
         with st.container(
             border=True,
             key="stat_flashcards",
         ):
-
             st.markdown(
                 f"""
-                <div class="stat-val"
-                     style="color:{color};">
+                <div class="stat-val">
                     {flashcard_count}
                 </div>
-                """,
-                unsafe_allow_html=True,
-            )
-
-            st.markdown(
-                "Flashcards Generated"
-            )
-
-            st.markdown(
-                f"""
-                <div class="prog-bg">
-                    <div class="prog-fill"
-                         style="
-                            width:100%;
-                            background:{color};
-                         ">
-                    </div>
+                <div class="stat-lbl">
+                    Flashcards Generated
+                </div>
+                <div class="prog-bg" style="margin-top:14px;">
+                    <div class="prog-fill" style="width:100%; background:#1E3A8A;"></div>
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -279,28 +246,23 @@ def render_home():
     # ---------------------------------------------------------
 
     with c2:
-
         with st.container(
             border=True,
             key="stat_quiz_questions",
         ):
-
             st.markdown(
                 f"""
-                <div class="stat-val"
-                     style="color:{color};">
+                <div class="stat-val">
                     {quiz_count}
+                </div>
+                <div class="stat-lbl">
+                    Quiz Questions
+                </div>
+                <div class="stat-sub">
+                    Generated from your document
                 </div>
                 """,
                 unsafe_allow_html=True,
-            )
-
-            st.markdown(
-                "Quiz Questions"
-            )
-
-            st.caption(
-                "Generated from your document"
             )
 
     # ---------------------------------------------------------
@@ -308,39 +270,20 @@ def render_home():
     # ---------------------------------------------------------
 
     with c3:
-
         with st.container(
             border=True,
             key="stat_study_progress",
         ):
-
             st.markdown(
                 f"""
-                <div class="stat-val"
-                     style="color:{color};">
+                <div class="stat-val">
                     {plan_progress}%
                 </div>
-                """,
-                unsafe_allow_html=True,
-            )
-
-            st.markdown(
-                "Study Plan Progress"
-            )
-
-            st.caption(
-                f"{plan_count} weeks"
-            )
-
-            st.markdown(
-                f"""
-                <div class="prog-bg">
-                    <div class="prog-fill"
-                         style="
-                            width:{plan_progress}%;
-                            background:#22C55E;
-                         ">
-                    </div>
+                <div class="stat-lbl">
+                    Study Plan Progress ({plan_count} weeks)
+                </div>
+                <div class="prog-bg" style="margin-top:14px;">
+                    <div class="prog-fill" style="width:{plan_progress}%; background:#22C55E;"></div>
                 </div>
                 """,
                 unsafe_allow_html=True,
@@ -358,7 +301,7 @@ def render_home():
     tab1, tab2, tab3, tab4 = st.tabs(
         [
             "📋 Summary",
-            "🃏 Flashcards",
+            "🎴 Flashcards",
             "🧪 Quiz",
             "📅 Study Plan",
         ]
@@ -635,12 +578,13 @@ def render_home():
             else:
 
                 st.markdown(
-                    f"### Your Personalised Study Plan — {course_name}"
+                    "<div style='font-family:\"DM Serif Display\",serif; font-size:22px; color:#1A0A0F; margin-bottom:4px; font-weight:700;'>Your Personalised Study Plan</div>",
+                    unsafe_allow_html=True,
                 )
 
                 st.caption(
                     "Check off each week as you complete it — "
-                    "your progress updates automatically."
+                    "your progress ring updates automatically."
                 )
 
                 updated = False

@@ -31,7 +31,7 @@ def init_db():
             email              TEXT    UNIQUE NOT NULL,
             password           TEXT    NOT NULL,
             name               TEXT    NOT NULL,
-            student_id         TEXT    NOT NULL,
+            student_id         TEXT    NOT NULL DEFAULT '',
             login_count        INTEGER NOT NULL DEFAULT 0,
             last_login         TEXT,
             last_activity      TEXT,
@@ -185,7 +185,7 @@ def _hash(password: str) -> str:
     return hashlib.sha256(password.encode()).hexdigest()
 
 
-def register_user(email: str, password: str, name: str, student_id: str) -> tuple[bool, str]:
+def register_user(email: str, password: str, name: str, student_id: str = "") -> tuple[bool, str]:
     """Returns (success, message)"""
     try:
         clean_email = email.strip().lower()
@@ -193,7 +193,7 @@ def register_user(email: str, password: str, name: str, student_id: str) -> tupl
         with _conn() as conn:
             conn.execute(
                 "INSERT INTO users (email, password, name, student_id, last_activity) VALUES (?, ?, ?, ?, ?)",
-                (clean_email, _hash(password), name.strip(), student_id.strip(), now_str)
+                (clean_email, _hash(password), name.strip(), student_id.strip() if student_id else "", now_str)
             )
         return True, "Account created successfully."
     except sqlite3.IntegrityError:

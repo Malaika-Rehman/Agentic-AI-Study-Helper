@@ -612,7 +612,7 @@ def generate_summary(
     course: str
 ) -> str:
 
-    system = f"""You are an expert academic summarizer helping a university student
+    system = f"""You are an expert academic summarizer helping a student
 studying {course}. Create a clear, structured summary with these exact sections:
 
 1. **Overview** (2-3 sentences about the main topic)
@@ -863,7 +863,7 @@ def answer_question(
 
     if doc_context.strip():
 
-        system = f"""You are an intelligent study assistant for {course} at SBBWU.
+        system = f"""You are an intelligent study assistant for {course}.
 Answer the student's question using the provided document context.
 
 If the answer is not in the context, use your general knowledge but say:
@@ -879,7 +879,7 @@ Be clear, accurate, concise, and educational."""
 
     else:
 
-        system = f"""You are an intelligent study assistant for {course} at SBBWU.
+        system = f"""You are an intelligent study assistant for {course}.
 No document is loaded. Answer using your general knowledge.
 
 Tell the student to upload a document for document-specific answers.

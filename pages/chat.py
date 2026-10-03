@@ -111,11 +111,12 @@ def _user_bubble(
     content_html: str,
     student_id: str,
 ) -> str:
+    header_label = f"You ({html.escape(str(student_id))})" if student_id and str(student_id).strip() else "You"
     return (
         "<div class='chat-row-user'>"
         "<div class='bubble-wrap'>"
         f"<div class='msg-header-user'>"
-        f"You ({html.escape(str(student_id))})"
+        f"{header_label}"
         f"</div>"
         f"<div class='bubble-user'>{content_html}</div>"
         "</div>"
@@ -187,7 +188,7 @@ def render_chat():
 
             st.markdown(
                 _ai_bubble(
-                    f"Assalamu Alaikum "
+                    f"Hello "
                     f"{html.escape(str(st.session_state.user_name))}! "
                     f"{doc_ctx}"
                 ),

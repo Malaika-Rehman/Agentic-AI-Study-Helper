@@ -2,14 +2,6 @@
 # DATA — Shared constants and dynamic course helpers
 # ─────────────────────────────────────────────────────────────────────────────
 
-DUMMY_USERS = {
-    "malaika@sbbwu.edu.pk": {
-        "password": "1234",
-        "name": "Malaika Rehman",
-        "student_id": "BC-25(B)U/22",
-    }
-}
-
 # ── Color map — covers every subject in ai_agents._SUBJECT_KEYWORDS ──────────
 # Format: lowercase subject name → hex color
 _KNOWN_COLORS: dict[str, str] = {

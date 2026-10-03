@@ -1139,8 +1139,8 @@ def render_about_platform():
             </div>
 
             <div class="platform-section-subtitle">
-                Currently focused on practical university-level
-                study workflows.
+                Works for any academic, professional, or personal
+                study material.
             </div>
 
 
@@ -1356,7 +1356,7 @@ def render_about_platform():
             <div class="platform-footer-version">
                 Production Release<br>
                 Version 1.0.0<br>
-                © 2026 SBBWU Study Companion
+                © 2026 Agentic AI Study Helper
             </div>
 
         </div>
@@ -1399,7 +1399,7 @@ def render_sidebar_footer():
             <br>
 
             <span style="font-size:10px;">
-                &copy; 2026 SBBWU Study Companion.
+                &copy; 2026 Agentic AI Study Helper.
                 All rights reserved.
             </span>
 

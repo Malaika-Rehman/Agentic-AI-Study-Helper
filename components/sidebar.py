@@ -541,6 +541,11 @@ def render_dashboard_sidebar():
             for w in st.session_state.user_name.split()[:2]
         ).upper()
 
+        student_id_html = (
+            f"<div style='font-size:11px; color:#7A5864;'>{st.session_state.student_id}</div>"
+            if st.session_state.get("student_id") else ""
+        )
+
         st.markdown(
             f"""
         <div style='background:#FDF9FA; border:1px solid #EADCE0; border-radius:12px;
@@ -552,9 +557,7 @@ def render_dashboard_sidebar():
             <div style='font-size:13px; font-weight:600; color:#1A0A0F;'>
               {st.session_state.user_name}
             </div>
-            <div style='font-size:11px; color:#7A5864;'>
-              {st.session_state.student_id}
-            </div>
+            {student_id_html}
           </div>
         </div>
         """,
