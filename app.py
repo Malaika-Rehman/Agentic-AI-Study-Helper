@@ -15,6 +15,8 @@ from components.sidebar import render_auth_sidebar
 from components.auth_cookies import set_session_cookie, delete_session_cookie
 from components.notification_manager import render_push_notification_client
 
+st.write("TEST VERSION: OCTOBER 3 2026")
+
 # ── Init ──
 init_state()
 
