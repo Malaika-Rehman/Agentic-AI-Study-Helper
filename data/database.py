@@ -1,617 +1,1100 @@
 """
-SQLite database layer.
-Handles: users, persistent sessions, documents metadata, generated results, chat history,
-push notification subscriptions, and notification audit logs.
-DB file: study_helper.db (auto-created in project root)
+Supabase database layer for Agentic AI Study Helper.
+
+Handles:
+- users
+- persistent sessions
+- documents
+- generated results
+- chat history
+- push notification subscriptions
+- notification logs
+- app settings
+- onboarding state
+
+The application uses Supabase as the shared cloud database so that
+users can access their accounts and data from different laptops/devices.
 """
-import sqlite3
-import hashlib
+
 import os
 import json
+import hashlib
 import secrets
 from datetime import datetime, timedelta, timezone
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "..", "study_helper.db")
+from dotenv import load_dotenv
+from supabase import create_client, Client
 
 
-def _conn():
-    conn = sqlite3.connect(DB_PATH, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    return conn
+# ============================================================
+# ENVIRONMENT / SUPABASE CONNECTION
+# ============================================================
+
+load_dotenv()
+
+SUPABASE_URL = os.getenv("SUPABASE_URL", "").strip()
+SUPABASE_KEY = os.getenv("SUPABASE_KEY", "").strip()
+
+if not SUPABASE_URL:
+    raise RuntimeError(
+        "SUPABASE_URL is missing. Please add it to your .env file."
+    )
+
+if not SUPABASE_KEY:
+    raise RuntimeError(
+        "SUPABASE_KEY is missing. Please add it to your .env file."
+    )
 
 
-# ─────────────────────────────────────────────
-# INIT — Create all tables if not exist
-# ─────────────────────────────────────────────
+supabase: Client = create_client(
+    SUPABASE_URL,
+    SUPABASE_KEY
+)
+
+
+# ============================================================
+# HELPERS
+# ============================================================
+
+def _now() -> str:
+    """Return current UTC timestamp in ISO format."""
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _clean_email(email: str) -> str:
+    """Normalize email address."""
+    return email.strip().lower()
+
+
+def _hash(password: str) -> str:
+    """Hash password using SHA-256.
+
+    Kept compatible with the previous SQLite implementation so
+    existing password logic remains unchanged.
+    """
+    return hashlib.sha256(password.encode("utf-8")).hexdigest()
+
+
+def _first(data):
+    """Return first row from a Supabase response or None."""
+    if not data:
+        return None
+    return data[0]
+
+
+# ============================================================
+# DATABASE INITIALIZATION
+# ============================================================
+
 def init_db():
-    with _conn() as conn:
-        conn.executescript("""
-        CREATE TABLE IF NOT EXISTS users (
-            id                 INTEGER PRIMARY KEY AUTOINCREMENT,
-            email              TEXT    UNIQUE NOT NULL,
-            password           TEXT    NOT NULL,
-            name               TEXT    NOT NULL,
-            student_id         TEXT    NOT NULL DEFAULT '',
-            login_count        INTEGER NOT NULL DEFAULT 0,
-            last_login         TEXT,
-            last_activity      TEXT,
-            last_reminder_sent TEXT,
-            is_active          INTEGER NOT NULL DEFAULT 1,
-            created_at         TEXT    DEFAULT (datetime('now'))
-        );
+    """
+    Supabase tables are created from the Supabase SQL Editor.
 
-        CREATE TABLE IF NOT EXISTS user_sessions (
-            id            INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_email    TEXT    NOT NULL,
-            session_token TEXT    UNIQUE NOT NULL,
-            created_at    TEXT    DEFAULT (datetime('now')),
-            last_activity TEXT    DEFAULT (datetime('now')),
-            expires_at    TEXT    NOT NULL,
-            is_active     INTEGER NOT NULL DEFAULT 1,
-            FOREIGN KEY (user_email) REFERENCES users(email)
-        );
-
-        CREATE TABLE IF NOT EXISTS documents (
-            id          INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_email  TEXT    NOT NULL,
-            filename    TEXT    NOT NULL,
-            course      TEXT    NOT NULL,
-            doc_text    TEXT    NOT NULL,
-            uploaded_at TEXT    DEFAULT (datetime('now')),
-            FOREIGN KEY (user_email) REFERENCES users(email)
-        );
-
-        CREATE TABLE IF NOT EXISTS results (
-            id          INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_email  TEXT    NOT NULL,
-            doc_id      INTEGER NOT NULL,
-            course      TEXT    NOT NULL,
-            summary     TEXT,
-            flashcards  TEXT,
-            quiz        TEXT,
-            study_plan  TEXT,
-            created_at  TEXT    DEFAULT (datetime('now')),
-            FOREIGN KEY (doc_id) REFERENCES documents(id)
-        );
-
-        CREATE TABLE IF NOT EXISTS chat_history (
-            id          INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_email  TEXT    NOT NULL,
-            doc_id      INTEGER,
-            role        TEXT    NOT NULL,
-            content     TEXT    NOT NULL,
-            created_at  TEXT    DEFAULT (datetime('now')),
-            FOREIGN KEY (doc_id) REFERENCES documents(id)
-        );
-
-        CREATE TABLE IF NOT EXISTS push_subscriptions (
-            id          INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_email  TEXT    NOT NULL,
-            endpoint    TEXT    UNIQUE NOT NULL,
-            p256dh      TEXT    NOT NULL,
-            auth        TEXT    NOT NULL,
-            created_at  TEXT    DEFAULT (datetime('now')),
-            FOREIGN KEY (user_email) REFERENCES users(email)
-        );
-
-        CREATE TABLE IF NOT EXISTS notification_logs (
-            id                INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_email        TEXT    NOT NULL,
-            notification_type TEXT    NOT NULL,
-            channel           TEXT    NOT NULL DEFAULT 'webpush',
-            status            TEXT    NOT NULL,
-            details           TEXT,
-            sent_at           TEXT    DEFAULT (datetime('now')),
-            FOREIGN KEY (user_email) REFERENCES users(email)
-        );
-
-        CREATE TABLE IF NOT EXISTS app_settings (
-            key   TEXT PRIMARY KEY,
-            value TEXT NOT NULL
-        );
-        """)
-
-        # Safe schema migrations for existing database files
-        migrations = [
-            "ALTER TABLE users ADD COLUMN login_count INTEGER NOT NULL DEFAULT 0",
-            "ALTER TABLE users ADD COLUMN last_login TEXT",
-            "ALTER TABLE users ADD COLUMN last_activity TEXT",
-            "ALTER TABLE users ADD COLUMN last_reminder_sent TEXT",
-            "ALTER TABLE users ADD COLUMN is_active INTEGER NOT NULL DEFAULT 1",
-        ]
-        for mig in migrations:
-            try:
-                conn.execute(mig)
-            except sqlite3.OperationalError:
-                pass
+    This function intentionally does not create SQLite tables.
+    It is kept so existing app.py code can continue calling init_db().
+    """
+    return True
 
 
-# ─────────────────────────────────────────────
-# APP SETTINGS & ONBOARDING STATE
-# ─────────────────────────────────────────────
+# ============================================================
+# APP SETTINGS / ONBOARDING
+# ============================================================
+
 def is_onboarding_completed() -> bool:
-    """Returns True if onboarding has already been completed/seen."""
+    """Return True if onboarding has been completed."""
     try:
-        with _conn() as conn:
-            row = conn.execute(
-                "SELECT value FROM app_settings WHERE key = 'onboarding_completed'"
-            ).fetchone()
-            return bool(row and row["value"] == "1")
+        response = (
+            supabase
+            .table("app_settings")
+            .select("value")
+            .eq("key", "onboarding_completed")
+            .limit(1)
+            .execute()
+        )
+
+        row = _first(response.data)
+
+        return bool(row and row.get("value") == "1")
+
     except Exception:
         return False
 
 
 def set_onboarding_completed():
-    """Mark onboarding as completed so returning users go directly to login."""
+    """Mark onboarding as completed."""
     try:
-        with _conn() as conn:
-            conn.execute(
-                "INSERT INTO app_settings (key, value) VALUES ('onboarding_completed', '1') "
-                "ON CONFLICT(key) DO UPDATE SET value = '1'"
+        (
+            supabase
+            .table("app_settings")
+            .upsert(
+                {
+                    "key": "onboarding_completed",
+                    "value": "1"
+                },
+                on_conflict="key"
             )
+            .execute()
+        )
     except Exception:
         pass
 
 
 def get_app_setting(key: str, default: str = "") -> str:
-    """Get an arbitrary setting from app_settings."""
+    """Get an application setting."""
     try:
-        with _conn() as conn:
-            row = conn.execute(
-                "SELECT value FROM app_settings WHERE key = ?", (key,)
-            ).fetchone()
-            return row["value"] if row else default
+        response = (
+            supabase
+            .table("app_settings")
+            .select("value")
+            .eq("key", key)
+            .limit(1)
+            .execute()
+        )
+
+        row = _first(response.data)
+
+        if row:
+            return row.get("value", default)
+
+        return default
+
     except Exception:
         return default
 
 
 def set_app_setting(key: str, value: str):
-    """Set an arbitrary setting in app_settings."""
+    """Save an application setting."""
     try:
-        with _conn() as conn:
-            conn.execute(
-                "INSERT INTO app_settings (key, value) VALUES (?, ?) "
-                "ON CONFLICT(key) DO UPDATE SET value = ?",
-                (key, value, value)
+        (
+            supabase
+            .table("app_settings")
+            .upsert(
+                {
+                    "key": key,
+                    "value": value
+                },
+                on_conflict="key"
             )
+            .execute()
+        )
     except Exception:
         pass
 
 
-# ─────────────────────────────────────────────
-# AUTH & PASSWORD HASHING
-# ─────────────────────────────────────────────
-def _hash(password: str) -> str:
-    return hashlib.sha256(password.encode()).hexdigest()
+# ============================================================
+# AUTHENTICATION
+# ============================================================
 
+def register_user(
+    email: str,
+    password: str,
+    name: str,
+    student_id: str = ""
+) -> tuple[bool, str]:
+    """
+    Create a new user.
 
-def register_user(email: str, password: str, name: str, student_id: str = "") -> tuple[bool, str]:
-    """Returns (success, message)"""
+    Returns:
+        (True, success_message)
+        (False, error_message)
+    """
+
+    clean_email = _clean_email(email)
+
     try:
-        clean_email = email.strip().lower()
-        now_str = datetime.now(timezone.utc).isoformat()
-        with _conn() as conn:
-            conn.execute(
-                "INSERT INTO users (email, password, name, student_id, last_activity) VALUES (?, ?, ?, ?, ?)",
-                (clean_email, _hash(password), name.strip(), student_id.strip() if student_id else "", now_str)
-            )
+        # Check whether account already exists.
+        existing = (
+            supabase
+            .table("users")
+            .select("id")
+            .eq("email", clean_email)
+            .limit(1)
+            .execute()
+        )
+
+        if existing.data:
+            return False, "An account with this email already exists."
+
+        now = _now()
+
+        data = {
+            "email": clean_email,
+            "password": _hash(password),
+            "name": name.strip(),
+            "student_id": student_id.strip() if student_id else "",
+            "login_count": 0,
+            "last_activity": now,
+            "is_active": True,
+        }
+
+        response = (
+            supabase
+            .table("users")
+            .insert(data)
+            .execute()
+        )
+
+        if not response.data:
+            return False, "Unable to create account."
+
         return True, "Account created successfully."
-    except sqlite3.IntegrityError:
-        return False, "An account with this email already exists."
+
     except Exception as e:
-        return False, f"Registration error: {e}"
+        error = str(e)
+
+        if "duplicate" in error.lower():
+            return False, "An account with this email already exists."
+
+        return False, f"Registration error: {error}"
 
 
 def login_user(email: str, password: str) -> tuple[bool, dict | str]:
-    """Returns (success, user_dict or error_message)"""
+    """
+    Authenticate user.
+
+    Returns exactly the format expected by the existing login page:
+
+        (True, user_dict)
+
+    or
+
+        (False, error_message)
+    """
+
+    clean_email = _clean_email(email)
+
     try:
-        with _conn() as conn:
-            row = conn.execute(
-                "SELECT * FROM users WHERE email = ?",
-                (email.strip().lower(),)
-            ).fetchone()
+        response = (
+            supabase
+            .table("users")
+            .select("*")
+            .eq("email", clean_email)
+            .eq("is_active", True)
+            .limit(1)
+            .execute()
+        )
+
+        row = _first(response.data)
+
         if not row:
             return False, "No account found with this email."
-        if row["password"] != _hash(password):
+
+        if row.get("password") != _hash(password):
             return False, "Incorrect password."
+
         return True, dict(row)
+
     except Exception as e:
         return False, f"Login error: {e}"
 
 
 def record_login(email: str) -> bool:
-    """Increments login_count, updates last_login and last_activity timestamps,
-    and returns True if this was user's first-ever login."""
-    clean_email = email.strip().lower()
-    now_str = datetime.now(timezone.utc).isoformat()
-    with _conn() as conn:
-        row = conn.execute(
-            "SELECT login_count FROM users WHERE email = ?", (clean_email,)
-        ).fetchone()
-        is_first_login = bool(row) and row["login_count"] == 0
-        conn.execute(
-            "UPDATE users SET login_count = login_count + 1, last_login = ?, last_activity = ? WHERE email = ?",
-            (now_str, now_str, clean_email)
+    """
+    Increment login count and update login/activity timestamps.
+
+    Returns True if this was the user's first login.
+    """
+
+    clean_email = _clean_email(email)
+
+    try:
+        response = (
+            supabase
+            .table("users")
+            .select("login_count")
+            .eq("email", clean_email)
+            .limit(1)
+            .execute()
         )
-    return is_first_login
+
+        row = _first(response.data)
+
+        if not row:
+            return False
+
+        current_count = row.get("login_count", 0) or 0
+        is_first_login = current_count == 0
+
+        now = _now()
+
+        (
+            supabase
+            .table("users")
+            .update(
+                {
+                    "login_count": current_count + 1,
+                    "last_login": now,
+                    "last_activity": now
+                }
+            )
+            .eq("email", clean_email)
+            .execute()
+        )
+
+        return is_first_login
+
+    except Exception:
+        return False
 
 
-# ─────────────────────────────────────────────
-# PERSISTENT SESSIONS (REMEMBER ME)
-# ─────────────────────────────────────────────
-def create_user_session(email: str, days_valid: int = 30) -> str:
-    """Generate a secure random session token and store in user_sessions table."""
-    clean_email = email.strip().lower()
+# ============================================================
+# PERSISTENT SESSIONS
+# ============================================================
+
+def create_user_session(
+    email: str,
+    days_valid: int = 30
+) -> str:
+    """Create a persistent login session."""
+
+    clean_email = _clean_email(email)
+
     session_token = secrets.token_urlsafe(32)
-    now = datetime.now(timezone.utc)
-    expires_at = (now + timedelta(days=days_valid)).isoformat()
-    now_str = now.isoformat()
 
-    with _conn() as conn:
-        conn.execute(
-            """INSERT INTO user_sessions (user_email, session_token, created_at, last_activity, expires_at, is_active)
-               VALUES (?, ?, ?, ?, ?, 1)""",
-            (clean_email, session_token, now_str, now_str, expires_at)
+    now = datetime.now(timezone.utc)
+    expires_at = now + timedelta(days=days_valid)
+
+    now_str = now.isoformat()
+    expires_str = expires_at.isoformat()
+
+    (
+        supabase
+        .table("user_sessions")
+        .insert(
+            {
+                "user_email": clean_email,
+                "session_token": session_token,
+                "created_at": now_str,
+                "last_activity": now_str,
+                "expires_at": expires_str,
+                "is_active": True
+            }
         )
-        # Also update user's last_activity
-        conn.execute(
-            "UPDATE users SET last_activity = ? WHERE email = ?",
-            (now_str, clean_email)
+        .execute()
+    )
+
+    (
+        supabase
+        .table("users")
+        .update(
+            {
+                "last_activity": now_str
+            }
         )
+        .eq("email", clean_email)
+        .execute()
+    )
+
     return session_token
 
 
 def validate_session_token(token: str) -> dict | None:
-    """Validate a persistent session token against the database.
-    Returns the user dict if valid and unexpired; None otherwise."""
+    """Validate persistent session token."""
+
     if not token or not isinstance(token, str):
         return None
 
     clean_token = token.strip()
-    now_str = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(timezone.utc)
 
     try:
-        with _conn() as conn:
-            row = conn.execute(
-                """SELECT s.session_token, s.expires_at, s.is_active,
-                          u.id as user_id, u.email, u.name, u.student_id, u.login_count,
-                          u.last_login, u.last_activity
-                   FROM user_sessions s
-                   JOIN users u ON s.user_email = u.email
-                   WHERE s.session_token = ? AND s.is_active = 1""",
-                (clean_token,)
-            ).fetchone()
+        response = (
+            supabase
+            .table("user_sessions")
+            .select(
+                "session_token, expires_at, is_active, "
+                "users(id,email,name,student_id,login_count,last_login,last_activity)"
+            )
+            .eq("session_token", clean_token)
+            .eq("is_active", True)
+            .limit(1)
+            .execute()
+        )
 
-            if not row:
-                return None
+        row = _first(response.data)
 
-            # Check expiration
-            expires_at = row["expires_at"]
-            if expires_at and expires_at < now_str:
-                # Expired session
-                conn.execute(
-                    "UPDATE user_sessions SET is_active = 0 WHERE session_token = ?",
-                    (clean_token,)
+        if not row:
+            return None
+
+        expires_at_text = row.get("expires_at")
+
+        if expires_at_text:
+            expires_at = datetime.fromisoformat(
+                expires_at_text.replace("Z", "+00:00")
+            )
+
+            if expires_at < now:
+                (
+                    supabase
+                    .table("user_sessions")
+                    .update({"is_active": False})
+                    .eq("session_token", clean_token)
+                    .execute()
                 )
+
                 return None
 
-            # Update session and user activity
-            conn.execute(
-                "UPDATE user_sessions SET last_activity = ? WHERE session_token = ?",
-                (now_str, clean_token)
-            )
-            conn.execute(
-                "UPDATE users SET last_activity = ? WHERE email = ?",
-                (now_str, row["email"])
-            )
+        now_str = now.isoformat()
 
-            return dict(row)
+        (
+            supabase
+            .table("user_sessions")
+            .update(
+                {
+                    "last_activity": now_str
+                }
+            )
+            .eq("session_token", clean_token)
+            .execute()
+        )
+
+        user = row.get("users")
+
+        if isinstance(user, list):
+            user = _first(user)
+
+        if not user:
+            return None
+
+        (
+            supabase
+            .table("users")
+            .update(
+                {
+                    "last_activity": now_str
+                }
+            )
+            .eq("email", user["email"])
+            .execute()
+        )
+
+        return {
+            "session_token": row.get("session_token"),
+            "expires_at": row.get("expires_at"),
+            "is_active": row.get("is_active"),
+            "user_id": user.get("id"),
+            "email": user.get("email"),
+            "name": user.get("name"),
+            "student_id": user.get("student_id"),
+            "login_count": user.get("login_count"),
+            "last_login": user.get("last_login"),
+            "last_activity": user.get("last_activity"),
+        }
+
     except Exception:
         return None
 
 
 def revoke_session_token(token: str):
-    """Revoke a single session token (called during logout)."""
+    """Revoke one session."""
     if not token:
         return
+
     try:
-        with _conn() as conn:
-            conn.execute(
-                "UPDATE user_sessions SET is_active = 0 WHERE session_token = ?",
-                (token.strip(),)
-            )
+        (
+            supabase
+            .table("user_sessions")
+            .update({"is_active": False})
+            .eq("session_token", token.strip())
+            .execute()
+        )
     except Exception:
         pass
 
 
 def revoke_all_user_sessions(email: str):
-    """Revoke all active sessions for a given user."""
+    """Revoke all sessions for a user."""
     try:
-        with _conn() as conn:
-            conn.execute(
-                "UPDATE user_sessions SET is_active = 0 WHERE user_email = ?",
-                (email.strip().lower(),)
-            )
+        (
+            supabase
+            .table("user_sessions")
+            .update({"is_active": False})
+            .eq("user_email", _clean_email(email))
+            .execute()
+        )
     except Exception:
         pass
 
 
-# ─────────────────────────────────────────────
-# USER ACTIVITY TRACKING
-# ─────────────────────────────────────────────
+# ============================================================
+# USER ACTIVITY
+# ============================================================
+
 def update_user_activity(email: str):
-    """Update last_activity timestamp for a user.
-    Called whenever the user interacts with the app."""
+    """Update user's last activity."""
     if not email:
         return
-    clean_email = email.strip().lower()
-    now_str = datetime.now(timezone.utc).isoformat()
+
     try:
-        with _conn() as conn:
-            conn.execute(
-                "UPDATE users SET last_activity = ? WHERE email = ?",
-                (now_str, clean_email)
+        (
+            supabase
+            .table("users")
+            .update(
+                {
+                    "last_activity": _now()
+                }
             )
+            .eq("email", _clean_email(email))
+            .execute()
+        )
     except Exception:
         pass
 
 
-# ─────────────────────────────────────────────
-# PUSH NOTIFICATION SUBSCRIPTIONS
-# ─────────────────────────────────────────────
-def save_push_subscription(email: str, endpoint: str, p256dh: str, auth: str):
-    """Store or update a browser push subscription for a user."""
-    clean_email = email.strip().lower()
-    now_str = datetime.now(timezone.utc).isoformat()
-    with _conn() as conn:
-        conn.execute(
-            """INSERT INTO push_subscriptions (user_email, endpoint, p256dh, auth, created_at)
-               VALUES (?, ?, ?, ?, ?)
-               ON CONFLICT(endpoint) DO UPDATE SET
-                   user_email = excluded.user_email,
-                   p256dh = excluded.p256dh,
-                   auth = excluded.auth,
-                   created_at = excluded.created_at""",
-            (clean_email, endpoint.strip(), p256dh.strip(), auth.strip(), now_str)
+# ============================================================
+# PUSH NOTIFICATIONS
+# ============================================================
+
+def save_push_subscription(
+    email: str,
+    endpoint: str,
+    p256dh: str,
+    auth: str
+):
+    """Save or update browser push subscription."""
+
+    clean_email = _clean_email(email)
+
+    data = {
+        "user_email": clean_email,
+        "endpoint": endpoint.strip(),
+        "p256dh": p256dh.strip(),
+        "auth": auth.strip(),
+        "created_at": _now()
+    }
+
+    (
+        supabase
+        .table("push_subscriptions")
+        .upsert(
+            data,
+            on_conflict="endpoint"
         )
+        .execute()
+    )
 
 
 def get_user_push_subscriptions(email: str) -> list[dict]:
-    """Retrieve all push subscriptions for a user."""
-    with _conn() as conn:
-        rows = conn.execute(
-            "SELECT * FROM push_subscriptions WHERE user_email = ?",
-            (email.strip().lower(),)
-        ).fetchall()
-    return [dict(r) for r in rows]
+    """Get push subscriptions for a user."""
+
+    response = (
+        supabase
+        .table("push_subscriptions")
+        .select("*")
+        .eq("user_email", _clean_email(email))
+        .execute()
+    )
+
+    return response.data or []
 
 
 def delete_push_subscription(endpoint: str):
-    """Remove an expired or invalid push subscription."""
-    with _conn() as conn:
-        conn.execute(
-            "DELETE FROM push_subscriptions WHERE endpoint = ?",
-            (endpoint.strip(),)
+    """Delete push subscription."""
+
+    (
+        supabase
+        .table("push_subscriptions")
+        .delete()
+        .eq("endpoint", endpoint.strip())
+        .execute()
+    )
+
+
+# ============================================================
+# INACTIVITY / NOTIFICATIONS
+# ============================================================
+
+def get_inactive_users(
+    inactivity_days: int = 7
+) -> list[dict]:
+    """Find users inactive for specified number of days."""
+
+    cutoff = (
+        datetime.now(timezone.utc)
+        - timedelta(days=inactivity_days)
+    ).isoformat()
+
+    try:
+        response = (
+            supabase
+            .table("users")
+            .select(
+                "id,email,name,student_id,login_count,"
+                "last_login,last_activity,last_reminder_sent"
+            )
+            .eq("is_active", True)
+            .execute()
         )
 
+        users = response.data or []
 
-# ─────────────────────────────────────────────
-# INACTIVITY AUDIT & NOTIFICATION LOGS
-# ─────────────────────────────────────────────
-def get_inactive_users(inactivity_days: int = 7) -> list[dict]:
-    """
-    Find users who:
-    1. Have last_activity older than `inactivity_days` days (or last_login if last_activity is null).
-    2. Have NOT already received a reminder for this inactivity cycle
-       (i.e., last_reminder_sent is NULL or last_reminder_sent < last_activity).
-    3. Are active users (is_active = 1).
-    """
-    cutoff = (datetime.now(timezone.utc) - timedelta(days=inactivity_days)).isoformat()
-    with _conn() as conn:
-        query = """
-        SELECT id, email, name, student_id, login_count, last_login, last_activity, last_reminder_sent
-        FROM users
-        WHERE is_active = 1
-          AND COALESCE(last_activity, last_login, created_at) <= ?
-          AND (
-              last_reminder_sent IS NULL
-              OR last_reminder_sent < COALESCE(last_activity, last_login, created_at)
-          )
-        ORDER BY last_activity ASC
-        """
-        rows = conn.execute(query, (cutoff,)).fetchall()
-    return [dict(r) for r in rows]
+        inactive = []
 
-
-def record_notification_sent(email: str, notification_type: str, channel: str = "webpush",
-                            status: str = "sent", details: str = ""):
-    """Record a dispatched reminder in notification_logs and update users.last_reminder_sent."""
-    clean_email = email.strip().lower()
-    now_str = datetime.now(timezone.utc).isoformat()
-    with _conn() as conn:
-        conn.execute(
-            """INSERT INTO notification_logs (user_email, notification_type, channel, status, details, sent_at)
-               VALUES (?, ?, ?, ?, ?, ?)""",
-            (clean_email, notification_type, channel, status, details, now_str)
-        )
-        if status == "sent":
-            conn.execute(
-                "UPDATE users SET last_reminder_sent = ? WHERE email = ?",
-                (now_str, clean_email)
+        for user in users:
+            activity = (
+                user.get("last_activity")
+                or user.get("last_login")
             )
 
+            if not activity:
+                continue
 
-def get_recent_notification_logs(limit: int = 50) -> list[dict]:
-    """Fetch latest notification logs."""
-    with _conn() as conn:
-        rows = conn.execute(
-            "SELECT * FROM notification_logs ORDER BY sent_at DESC LIMIT ?",
-            (limit,)
-        ).fetchall()
-    return [dict(r) for r in rows]
+            if activity <= cutoff:
+                reminder = user.get("last_reminder_sent")
+
+                if not reminder or reminder < activity:
+                    inactive.append(user)
+
+        inactive.sort(
+            key=lambda x: x.get("last_activity") or ""
+        )
+
+        return inactive
+
+    except Exception:
+        return []
 
 
-# ─────────────────────────────────────────────
-# VAPID KEY GENERATION & STORAGE
-# ─────────────────────────────────────────────
+def record_notification_sent(
+    email: str,
+    notification_type: str,
+    channel: str = "webpush",
+    status: str = "sent",
+    details: str = ""
+):
+    """Record notification and update reminder timestamp."""
+
+    clean_email = _clean_email(email)
+    now = _now()
+
+    try:
+        (
+            supabase
+            .table("notification_logs")
+            .insert(
+                {
+                    "user_email": clean_email,
+                    "notification_type": notification_type,
+                    "channel": channel,
+                    "status": status,
+                    "details": details,
+                    "sent_at": now
+                }
+            )
+            .execute()
+        )
+
+        if status == "sent":
+            (
+                supabase
+                .table("users")
+                .update(
+                    {
+                        "last_reminder_sent": now
+                    }
+                )
+                .eq("email", clean_email)
+                .execute()
+            )
+
+    except Exception:
+        pass
+
+
+def get_recent_notification_logs(
+    limit: int = 50
+) -> list[dict]:
+    """Get recent notification logs."""
+
+    response = (
+        supabase
+        .table("notification_logs")
+        .select("*")
+        .order("sent_at", desc=True)
+        .limit(limit)
+        .execute()
+    )
+
+    return response.data or []
+
+
+# ============================================================
+# VAPID KEYS
+# ============================================================
+
 def get_or_create_vapid_keys() -> tuple[str, str, str]:
     """
-    Retrieve existing VAPID keys from environment or app_settings,
-    or generate a fresh VAPID keypair if none exists.
-    Returns (public_key_b64, private_key_pem, claim_email)
+    Retrieve VAPID keys from environment or Supabase settings.
+    Generate them if necessary.
     """
+
     env_pub = os.getenv("VAPID_PUBLIC_KEY", "")
     env_priv = os.getenv("VAPID_PRIVATE_KEY", "")
-    env_email = os.getenv("VAPID_CLAIM_EMAIL", "mailto:admin@studyhelper.ai")
+    env_email = os.getenv(
+        "VAPID_CLAIM_EMAIL",
+        "mailto:admin@studyhelper.ai"
+    )
 
     if env_pub and env_priv:
         return env_pub, env_priv, env_email
 
     stored_pub = get_app_setting("vapid_public_key")
     stored_priv = get_app_setting("vapid_private_key")
-    stored_email = get_app_setting("vapid_claim_email", "mailto:admin@studyhelper.ai")
+    stored_email = get_app_setting(
+        "vapid_claim_email",
+        env_email
+    )
 
     if stored_pub and stored_priv:
         return stored_pub, stored_priv, stored_email
 
-    # Generate new VAPID keys using py_vapid / cryptography
     try:
         from py_vapid import Vapid
+        import base64
+
+        from cryptography.hazmat.primitives import serialization
+
         vapid = Vapid()
         vapid.generate_keys()
-        import base64
-        from cryptography.hazmat.primitives import serialization
+
         raw_pub = vapid.public_key.public_bytes(
             encoding=serialization.Encoding.X962,
             format=serialization.PublicFormat.UncompressedPoint
         )
-        pub_b64 = base64.urlsafe_b64encode(raw_pub).decode("utf-8").rstrip("=")
+
+        pub_b64 = base64.urlsafe_b64encode(
+            raw_pub
+        ).decode("utf-8").rstrip("=")
+
         priv_pem = vapid.private_pem().decode("utf-8")
 
-        set_app_setting("vapid_public_key", pub_b64)
-        set_app_setting("vapid_private_key", priv_pem)
-        set_app_setting("vapid_claim_email", env_email)
+        set_app_setting(
+            "vapid_public_key",
+            pub_b64
+        )
+
+        set_app_setting(
+            "vapid_private_key",
+            priv_pem
+        )
+
+        set_app_setting(
+            "vapid_claim_email",
+            env_email
+        )
 
         return pub_b64, priv_pem, env_email
-    except Exception as e:
+
+    except Exception:
         return "", "", env_email
 
 
-# ─────────────────────────────────────────────
+# ============================================================
 # DOCUMENTS
-# ─────────────────────────────────────────────
-def save_document(user_email: str, filename: str, course: str, doc_text: str) -> int:
+# ============================================================
+
+def save_document(
+    user_email: str,
+    filename: str,
+    course: str,
+    doc_text: str
+) -> int:
     """Save document and return its ID."""
-    with _conn() as conn:
-        cur = conn.execute(
-            "INSERT INTO documents (user_email, filename, course, doc_text) VALUES (?, ?, ?, ?)",
-            (user_email.strip().lower(), filename, course, doc_text)
+
+    clean_email = _clean_email(user_email)
+
+    response = (
+        supabase
+        .table("documents")
+        .insert(
+            {
+                "user_email": clean_email,
+                "filename": filename,
+                "course": course,
+                "doc_text": doc_text
+            }
         )
-        doc_id = cur.lastrowid
-    update_user_activity(user_email)
-    return doc_id
+        .execute()
+    )
+
+    row = _first(response.data)
+
+    if not row:
+        raise RuntimeError(
+            "Failed to save document."
+        )
+
+    update_user_activity(clean_email)
+
+    return int(row["id"])
 
 
-def get_user_documents(user_email: str) -> list[dict]:
-    """Get all documents for a user, newest first."""
-    with _conn() as conn:
-        rows = conn.execute(
-            "SELECT id, filename, course, uploaded_at FROM documents WHERE user_email = ? ORDER BY uploaded_at DESC",
-            (user_email.strip().lower(),)
-        ).fetchall()
-    return [dict(r) for r in rows]
+def get_user_documents(
+    user_email: str
+) -> list[dict]:
+    """Get all documents for a user."""
+
+    response = (
+        supabase
+        .table("documents")
+        .select(
+            "id,filename,course,uploaded_at"
+        )
+        .eq(
+            "user_email",
+            _clean_email(user_email)
+        )
+        .order(
+            "uploaded_at",
+            desc=True
+        )
+        .execute()
+    )
+
+    return response.data or []
 
 
 def get_document_text(doc_id: int) -> str:
-    with _conn() as conn:
-        row = conn.execute("SELECT doc_text FROM documents WHERE id = ?", (doc_id,)).fetchone()
-    return row["doc_text"] if row else ""
+    """Get document text by ID."""
+
+    response = (
+        supabase
+        .table("documents")
+        .select("doc_text")
+        .eq("id", doc_id)
+        .limit(1)
+        .execute()
+    )
+
+    row = _first(response.data)
+
+    return row.get("doc_text", "") if row else ""
 
 
-# ─────────────────────────────────────────────
+# ============================================================
 # RESULTS
-# ─────────────────────────────────────────────
-def save_results(user_email: str, doc_id: int, course: str,
-                 summary: str, flashcards: list, quiz: list, study_plan: list):
-    clean_email = user_email.strip().lower()
-    with _conn() as conn:
-        # Delete old result for same doc if re-processing
-        conn.execute("DELETE FROM results WHERE doc_id = ?", (doc_id,))
-        conn.execute(
-            """INSERT INTO results (user_email, doc_id, course, summary, flashcards, quiz, study_plan)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
-            (clean_email, doc_id, course,
-             summary,
-             json.dumps(flashcards),
-             json.dumps(quiz),
-             json.dumps(study_plan))
+# ============================================================
+
+def save_results(
+    user_email: str,
+    doc_id: int,
+    course: str,
+    summary: str,
+    flashcards: list,
+    quiz: list,
+    study_plan: list
+):
+    """Save generated AI results."""
+
+    clean_email = _clean_email(user_email)
+
+    # Remove previous results for this document.
+    (
+        supabase
+        .table("results")
+        .delete()
+        .eq("doc_id", doc_id)
+        .execute()
+    )
+
+    (
+        supabase
+        .table("results")
+        .insert(
+            {
+                "user_email": clean_email,
+                "doc_id": doc_id,
+                "course": course,
+                "summary": summary,
+                "flashcards": flashcards,
+                "quiz": quiz,
+                "study_plan": study_plan
+            }
         )
+        .execute()
+    )
+
     update_user_activity(clean_email)
 
 
-def get_results(doc_id: int) -> dict | None:
-    with _conn() as conn:
-        row = conn.execute("SELECT * FROM results WHERE doc_id = ?", (doc_id,)).fetchone()
+def get_results(
+    doc_id: int
+) -> dict | None:
+    """Get generated results for a document."""
+
+    response = (
+        supabase
+        .table("results")
+        .select("*")
+        .eq("doc_id", doc_id)
+        .limit(1)
+        .execute()
+    )
+
+    row = _first(response.data)
+
     if not row:
         return None
-    r = dict(row)
-    r["flashcards"]  = json.loads(r["flashcards"]  or "[]")
-    r["quiz"]        = json.loads(r["quiz"]         or "[]")
-    r["study_plan"]  = json.loads(r["study_plan"]   or "[]")
-    return r
+
+    result = dict(row)
+
+    # Supabase JSONB normally returns Python lists/dicts.
+    # These checks also support old string-style JSON values.
+    for key in ["flashcards", "quiz", "study_plan"]:
+        value = result.get(key)
+
+        if isinstance(value, str):
+            try:
+                result[key] = json.loads(value)
+            except Exception:
+                result[key] = []
+
+        elif value is None:
+            result[key] = []
+
+    return result
 
 
-def update_study_plan(doc_id: int, study_plan: list):
-    """Save updated study plan (checkbox state) back to DB."""
-    with _conn() as conn:
-        conn.execute(
-            "UPDATE results SET study_plan = ? WHERE doc_id = ?",
-            (json.dumps(study_plan), doc_id)
+def update_study_plan(
+    doc_id: int,
+    study_plan: list
+):
+    """Update study plan."""
+
+    (
+        supabase
+        .table("results")
+        .update(
+            {
+                "study_plan": study_plan
+            }
         )
+        .eq("doc_id", doc_id)
+        .execute()
+    )
 
 
-# ─────────────────────────────────────────────
+# ============================================================
 # DELETE DOCUMENT
-# ─────────────────────────────────────────────
-def delete_document(user_email: str, doc_id: int):
-    """Permanently delete a document and everything tied to it
-    (generated results, chat history). Scoped to user_email so a
-    user can only ever delete their own documents."""
-    clean_email = user_email.strip().lower()
-    with _conn() as conn:
-        conn.execute("DELETE FROM documents WHERE id = ? AND user_email = ?", (doc_id, clean_email))
-        conn.execute("DELETE FROM results WHERE doc_id = ?", (doc_id,))
-        conn.execute("DELETE FROM chat_history WHERE doc_id = ? AND user_email = ?", (doc_id, clean_email))
+# ============================================================
+
+def delete_document(
+    user_email: str,
+    doc_id: int
+):
+    """
+    Delete a user's document.
+
+    Results and chat history are deleted explicitly before
+    deleting the document.
+    """
+
+    clean_email = _clean_email(user_email)
+
+    (
+        supabase
+        .table("results")
+        .delete()
+        .eq("doc_id", doc_id)
+        .eq("user_email", clean_email)
+        .execute()
+    )
+
+    (
+        supabase
+        .table("chat_history")
+        .delete()
+        .eq("doc_id", doc_id)
+        .eq("user_email", clean_email)
+        .execute()
+    )
+
+    (
+        supabase
+        .table("documents")
+        .delete()
+        .eq("id", doc_id)
+        .eq("user_email", clean_email)
+        .execute()
+    )
+
     update_user_activity(clean_email)
 
 
-# ─────────────────────────────────────────────
+# ============================================================
 # CHAT HISTORY
-# ─────────────────────────────────────────────
-def save_message(user_email: str, doc_id: int, role: str, content: str):
-    clean_email = user_email.strip().lower()
-    with _conn() as conn:
-        conn.execute(
-            "INSERT INTO chat_history (user_email, doc_id, role, content) VALUES (?, ?, ?, ?)",
-            (clean_email, doc_id, role, content)
+# ============================================================
+
+def save_message(
+    user_email: str,
+    doc_id: int,
+    role: str,
+    content: str
+):
+    """Save chat message."""
+
+    clean_email = _clean_email(user_email)
+
+    (
+        supabase
+        .table("chat_history")
+        .insert(
+            {
+                "user_email": clean_email,
+                "doc_id": doc_id,
+                "role": role,
+                "content": content
+            }
         )
+        .execute()
+    )
+
     update_user_activity(clean_email)
 
 
-def get_chat_history(user_email: str, doc_id: int) -> list[dict]:
-    with _conn() as conn:
-        rows = conn.execute(
-            "SELECT role, content FROM chat_history WHERE user_email = ? AND doc_id = ? ORDER BY created_at ASC",
-            (user_email.strip().lower(), doc_id)
-        ).fetchall()
-    return [dict(r) for r in rows]
+def get_chat_history(
+    user_email: str,
+    doc_id: int
+) -> list[dict]:
+    """Get chat history for a document."""
 
-
-def clear_chat_history(user_email: str, doc_id: int):
-    clean_email = user_email.strip().lower()
-    with _conn() as conn:
-        conn.execute(
-            "DELETE FROM chat_history WHERE user_email = ? AND doc_id = ?",
-            (clean_email, doc_id)
+    response = (
+        supabase
+        .table("chat_history")
+        .select("role,content")
+        .eq(
+            "user_email",
+            _clean_email(user_email)
         )
+        .eq(
+            "doc_id",
+            doc_id
+        )
+        .order(
+            "created_at",
+            desc=False
+        )
+        .execute()
+    )
+
+    return response.data or []
+
+
+def clear_chat_history(
+    user_email: str,
+    doc_id: int
+):
+    """Delete chat history for a document."""
+
+    clean_email = _clean_email(user_email)
+
+    (
+        supabase
+        .table("chat_history")
+        .delete()
+        .eq("user_email", clean_email)
+        .eq("doc_id", doc_id)
+        .execute()
+    )
+
     update_user_activity(clean_email)
